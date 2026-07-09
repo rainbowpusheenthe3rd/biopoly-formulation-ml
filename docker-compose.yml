@@ -1,0 +1,28 @@
+# biopoly stack:
+#   api     - FastAPI forward + inverse-design service (self-contained, trained at build)
+#   mlflow  - MLflow tracking UI over the SQLite store written by local `biopoly-train`
+#             (run with:  docker compose --profile tracking up)
+services:
+  api:
+    build: .
+    image: biopoly-api
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mlflow:
+    image: biopoly-api
+    profiles: ["tracking"]
+    depends_on: [api]
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./:/host:ro
+    command: >
+      uv run mlflow ui
+      --backend-store-uri sqlite:////host/mlflow.db
+      --host 0.0.0.0 --port 5000
