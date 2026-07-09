@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Project artifacts
+data/*.parquet
+data/*.csv
+artifacts/
+mlruns/
+mlartifacts/
+mlflow.db
+outputs/
+*.pkl
+*.txt.model
+lightgbm_*.txt
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/

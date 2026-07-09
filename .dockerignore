@@ -1,0 +1,12 @@
+.venv/
+.git/
+data/*.parquet
+artifacts/
+mlruns/
+mlartifacts/
+mlflow.db
+docs/
+tests/
+**/__pycache__/
+.ruff_cache/
+.pytest_cache/

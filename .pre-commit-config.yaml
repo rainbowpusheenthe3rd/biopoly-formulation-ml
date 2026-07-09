@@ -1,0 +1,28 @@
+# Pre-commit hooks: keep the tree clean and enforce the commit convention.
+# Commit convention (enforced by the local hook below):
+#   feat(modelling): ...   fix(server): ...   chore(cicd): ...   docs(readme): ...
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-added-large-files
+        args: [--maxkb=2048]
+      - id: check-yaml
+      - id: check-toml
+
+  - repo: local
+    hooks:
+      - id: conventional-commit
+        name: conventional commit message
+        entry: python scripts/check_commit_msg.py
+        language: system
+        stages: [commit-msg]
