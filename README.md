@@ -51,7 +51,7 @@ melt flow index, biodegradation@60d, water absorption, optical clarity.
 | Data: missingness, protocol covariate | [`generate.py`](src/biopoly/data/generate.py), [`features.py`](src/biopoly/features.py) |
 | Forward model — GBDT, native categorical/missing, feature importance | [`models/forward.py`](src/biopoly/models/forward.py) |
 | Hyper-parameter search (Optuna) | [`models/train.py`](src/biopoly/models/train.py) `--hpo` |
-| Evaluation — uncertainty + **per-variable tolerance** | [`models/metrics.py`](src/biopoly/models/metrics.py) |
+| Evaluation — uncertainty, **conformal calibration (CQR)** + **per-variable tolerance** | [`models/metrics.py`](src/biopoly/models/metrics.py), [`models/conformal.py`](src/biopoly/models/conformal.py) |
 | System — FastAPI, Pydantic, Docker, tracking, registry, drift, retrain, CI | [`api/`](src/biopoly/api), [`tracking/`](src/biopoly/tracking), [`models/registry.py`](src/biopoly/models/registry.py), [`monitoring/drift.py`](src/biopoly/monitoring/drift.py), [`scripts/retrain.py`](scripts/retrain.py) |
 | Inverse design — baseline sampling → Bayesian optimisation | [`inverse/`](src/biopoly/inverse) |
 | Polymer representation — descriptors now, learned embeddings as upgrade | [`chemistry.py`](src/biopoly/data/chemistry.py), [`docs/RESULTS.md`](docs/RESULTS.md) |
@@ -66,8 +66,12 @@ melt flow index, biodegradation@60d, water absorption, optical clarity.
 | water_absorption_pct | 0.99 | 0.4 % | 95% |
 | optical_clarity_pct | 0.94 | 3.0 % | 84% |
 
-**mean R² ≈ 0.94.** Every prediction ships with a p10–p90 band (quantile regression);
-interval calibration (conformal) is a noted follow-up.
+**mean R² ≈ 0.94.** Every prediction ships with a p10–p90 band (quantile regression),
+**conformally calibrated** ([`conformal.py`](src/biopoly/models/conformal.py)). On a held-out
+calibration split, CQR corrects the raw quantile bands — which *under-cover* badly (~0.55 against
+a nominal 0.80) — back to ≈0.80 with a distribution-free, finite-sample guarantee, widening the
+intervals only as much as the data demands. `biopoly-train` prints the raw→conformal coverage for
+every target, and the API serves the calibrated bands.
 
 Regenerate the full report (figures + [`docs/RESULTS.md`](docs/RESULTS.md)) with:
 `uv run python scripts/report.py`.

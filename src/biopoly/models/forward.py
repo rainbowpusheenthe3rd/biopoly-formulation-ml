@@ -44,6 +44,9 @@ class ForwardModel:
         self.params = {**_DEFAULT_PARAMS, **(params or {})}
         self.models_: dict[str, dict[str, LGBMRegressor]] = {}
         self.feature_cols = FEATURE_COLS
+        # Optional CQR calibrator; when set, predict() returns calibrated bands.
+        # Attached by biopoly-train after fitting on a held-out calibration split.
+        self.conformal_ = None
 
     def fit(self, df: pd.DataFrame) -> ForwardModel:
         x_all = make_x(df)
@@ -69,6 +72,11 @@ class ForwardModel:
             preds = {n: m.predict(x) for n, m in self.models_[target].items()}
             stacked = np.sort(np.vstack([preds["p10"], preds["p50"], preds["p90"]]), axis=0)
             out[target] = {"p10": stacked[0], "value": stacked[1], "p90": stacked[2]}
+        # If a CQR calibrator is attached, serve calibrated bands transparently so
+        # every consumer (API, inverse design, metrics) gets guaranteed coverage.
+        calibrator = getattr(self, "conformal_", None)
+        if calibrator is not None:
+            out = calibrator.apply(out)
         return out
 
     def feature_importances(self) -> dict[str, dict[str, float]]:
