@@ -89,5 +89,11 @@ Regenerate the full report (figures + [`docs/RESULTS.md`](docs/RESULTS.md)) with
   validate → register-if-better. Wired into GitHub Actions (`workflow_dispatch`).
 - **Reproducibility** — `uv` lockfile, pinned Python, pre-commit (ruff) + a conventional-commit
   hook, typed FastAPI with Pydantic validation.
+- **Spiral-layered tests** — every test carries a `@pytest.mark.layer(1..9)` from foundations
+  (schema/chemistry) up to the full system (inverse design/API). CI runs them in order and reports
+  a **complexity frontier** — the highest contiguous layer that fully passes — so a failure tells you
+  *how far up the complexity ladder the implementation is correct*, not just a pass count. See
+  [`tests/conftest.py`](../tests/conftest.py). Multi-tenant productionisation is sketched in
+  [`docs/MULTI_TENANCY.md`](MULTI_TENANCY.md).
 
 See [`WALKTHROUGH.md`](WALKTHROUGH.md) for the 5-minute walkthrough.
