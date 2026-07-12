@@ -5,6 +5,8 @@ from fastapi.testclient import TestClient
 
 from biopoly.api import main as api_main
 
+pytestmark = pytest.mark.layer(9)  # inverse design & API
+
 
 @pytest.fixture(scope="module")
 def client(fast_model):

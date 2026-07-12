@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from biopoly import TARGETS
 from biopoly.data.chemistry import Formulation, forward_true
 from biopoly.data.schema import FEATURE_COLS
+
+pytestmark = pytest.mark.layer(3)  # data generation
 
 
 def test_schema_columns_present(small_df):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from biopoly import TARGETS
 from biopoly.config import Settings
@@ -9,6 +10,8 @@ from biopoly.features import split
 from biopoly.models.conformal import ConformalCalibrator
 from biopoly.models.forward import ForwardModel
 from biopoly.models.metrics import evaluate
+
+pytestmark = pytest.mark.layer(6)  # calibrated uncertainty (CQR)
 
 
 def _fit_with_calibration(seed: int = 11):

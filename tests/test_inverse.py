@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from biopoly.inverse import baseline, bayesopt
+
+pytestmark = pytest.mark.layer(9)  # inverse design & API
 
 
 def test_baseline_returns_ranked_candidates(fast_model):

@@ -51,3 +51,6 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = [
+    "layer(n): spiral complexity layer, 1 (simplest) .. 9 (full system)",
+]

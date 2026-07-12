@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from biopoly import TARGETS
 from biopoly.models.metrics import evaluate, summary_row
+
+pytestmark = pytest.mark.layer(5)  # forward model learns signal
 
 
 def test_predict_shape_and_quantile_order(fast_model, small_df):
