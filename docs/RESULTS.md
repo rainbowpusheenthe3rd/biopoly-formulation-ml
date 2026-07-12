@@ -25,6 +25,14 @@ tensile 0%, melt 0%, biodegradation 24%, water 0%, optical 32%.
 
 Note: processing temperature dominates tensile strength — physically correct.
 
+## Characterisation as signal (synthetic DSC)
+Polymer characterisation is signal, not tabular. A synthetic DSC thermogram per formulation
+is baseline-corrected, Savitzky-Golay smoothed and peak-detected ([`signals.py`](../src/biopoly/signals.py))
+to recover melt temperatures and crystallinity — the features a scientist actually reads off the
+instrument, rather than hand-waving the measurement.
+
+![signal processing](figures/signal_processing.png)
+
 ## Inverse design (target spec -> formulation)
 **Achievable target** `{'tensile_strength_mpa': 50.0, 'optical_clarity_pct': 80.0, 'water_absorption_pct': 1.0}`
 - predicted: `{'tensile_strength_mpa': 52.72, 'melt_flow_index_g10min': 10.06, 'biodegradation_60d_pct': 16.0, 'water_absorption_pct': 0.82, 'optical_clarity_pct': 77.89}`

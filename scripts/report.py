@@ -86,6 +86,39 @@ def _fig_feature_importance(model: ForwardModel) -> str:
     return path.name
 
 
+def _fig_signal_processing() -> str:
+    """Raw vs processed synthetic DSC thermogram with detected melt peaks annotated."""
+    from scipy.signal import find_peaks
+
+    from biopoly import signals
+
+    rng = np.random.default_rng(0)
+    x, raw = signals.synth_dsc({"PLA": 0.6, "PCL": 0.4}, nucleating=0.02, rng=rng)
+    proc = signals.process_signal(x, raw)
+    peaks, _ = find_peaks(proc, prominence=0.02)
+
+    fig, ax = plt.subplots(1, 2, figsize=(12, 4))
+    ax[0].plot(x, raw, color="#C44E52", lw=1)
+    ax[0].set_title("raw DSC thermogram (noise + sloping baseline)", fontsize=9)
+    ax[0].set_xlabel("temperature (C)")
+    ax[0].set_ylabel("heat flow")
+    ax[1].plot(x, proc, color="#4C72B0", lw=1.2)
+    ax[1].plot(x[peaks], proc[peaks], "v", color="#DD8452", ms=9)
+    for p in peaks:
+        ax[1].annotate(
+            f"{x[p]:.0f} C", (x[p], proc[p]), textcoords="offset points",
+            xytext=(0, 8), ha="center", fontsize=8,
+        )
+    ax[1].set_title("baseline-corrected + Savitzky-Golay, peaks detected", fontsize=9)
+    ax[1].set_xlabel("temperature (C)")
+    fig.suptitle("Signal processing: melt peaks recovered from a PLA/PCL thermogram", fontsize=10)
+    fig.tight_layout()
+    path = FIG / "signal_processing.png"
+    fig.savefig(path, dpi=110, bbox_inches="tight")
+    plt.close(fig)
+    return path.name
+
+
 def _metrics_table_md(metrics) -> str:
     rows = ["| target | n | MAE | RMSE | R² | coverage | within-tol |",
             "|---|---|---|---|---|---|---|"]
@@ -110,6 +143,7 @@ def main() -> None:
     f_dist = _fig_target_distributions(df)
     f_pva = _fig_pred_vs_actual(test_df, preds, metrics)
     f_imp = _fig_feature_importance(model)
+    f_sig = _fig_signal_processing()
 
     # inverse design
     achievable = {
@@ -146,6 +180,14 @@ def main() -> None:
 
 Note: processing temperature dominates tensile strength — physically correct.
 
+## Characterisation as signal (synthetic DSC)
+Polymer characterisation is signal, not tabular. A synthetic DSC thermogram per formulation is
+baseline-corrected, Savitzky-Golay smoothed and peak-detected
+([`signals.py`](../src/biopoly/signals.py)) to recover melt temperatures and crystallinity — the
+features a scientist actually reads off the instrument, rather than hand-waving the measurement.
+
+![signal processing](figures/{f_sig})
+
 ## Inverse design (target spec -> formulation)
 **Achievable target** `{achievable}`
 - predicted: `{inv["predicted"]}`
@@ -162,7 +204,7 @@ returns the best compromise:
 ```
 """
     (DOCS / "RESULTS.md").write_text(md, encoding="utf-8")
-    print("wrote docs/RESULTS.md and 3 figures under docs/figures/")
+    print("wrote docs/RESULTS.md and 4 figures under docs/figures/")
     print(f"mean R2 = {summary_row(metrics):.3f}; drift alert = {drift['alert']}")
 
 

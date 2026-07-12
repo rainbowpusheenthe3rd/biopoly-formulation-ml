@@ -27,7 +27,7 @@ LAYER_NAMES: dict[int, str] = {
     1: "foundations - schema & config",
     2: "domain ground truth - chemistry",
     3: "data generation",
-    4: "features & splitting",
+    4: "features, splitting & signal DSP",
     5: "forward model learns signal",
     6: "calibrated uncertainty (CQR)",
     7: "time series & seasonality",
