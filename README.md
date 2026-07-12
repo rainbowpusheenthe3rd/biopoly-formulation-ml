@@ -52,6 +52,7 @@ melt flow index, biodegradation@60d, water absorption, optical clarity.
 | Forward model — GBDT, native categorical/missing, feature importance | [`models/forward.py`](src/biopoly/models/forward.py) |
 | Hyper-parameter search (Optuna) | [`models/train.py`](src/biopoly/models/train.py) `--hpo` |
 | Evaluation — uncertainty, **conformal calibration (CQR)** + **per-variable tolerance** | [`models/metrics.py`](src/biopoly/models/metrics.py), [`models/conformal.py`](src/biopoly/models/conformal.py) |
+| **Signal processing** — synthetic DSC thermograms → `scipy.signal` DSP → melt-peak features | [`signals.py`](src/biopoly/signals.py) |
 | System — FastAPI, Pydantic, Docker, tracking, registry, drift, retrain, CI | [`api/`](src/biopoly/api), [`tracking/`](src/biopoly/tracking), [`models/registry.py`](src/biopoly/models/registry.py), [`monitoring/drift.py`](src/biopoly/monitoring/drift.py), [`scripts/retrain.py`](scripts/retrain.py) |
 | Inverse design — baseline sampling → Bayesian optimisation | [`inverse/`](src/biopoly/inverse) |
 | Polymer representation — descriptors now, learned embeddings as upgrade | [`chemistry.py`](src/biopoly/data/chemistry.py), [`docs/RESULTS.md`](docs/RESULTS.md) |
@@ -93,7 +94,13 @@ Regenerate the full report (figures + [`docs/RESULTS.md`](docs/RESULTS.md)) with
   (schema/chemistry) up to the full system (inverse design/API). CI runs them in order and reports
   a **complexity frontier** — the highest contiguous layer that fully passes — so a failure tells you
   *how far up the complexity ladder the implementation is correct*, not just a pass count. See
-  [`tests/conftest.py`](../tests/conftest.py). Multi-tenant productionisation is sketched in
-  [`docs/MULTI_TENANCY.md`](MULTI_TENANCY.md).
+  [`tests/conftest.py`](tests/conftest.py). Multi-tenant productionisation is sketched in
+  [`docs/MULTI_TENANCY.md`](docs/MULTI_TENANCY.md).
+
+## Roadmap
+
+See **[ROADMAP.md](ROADMAP.md)** for what's shipped and what's next — wiring seasonality and the
+DSC signal features into the model, an active-learning data strategy, MCTS inverse design, a
+multi-tenant frontend, and engineering-hygiene passes.
 
 See [`WALKTHROUGH.md`](WALKTHROUGH.md) for the 5-minute walkthrough.
