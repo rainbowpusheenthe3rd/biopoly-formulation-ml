@@ -21,8 +21,28 @@ jobs:
         run: uv sync --frozen
       - name: Lint
         run: uv run ruff check .
-      - name: Tests
-        run: uv run pytest -q
+      - name: Spiral test suite
+        run: uv run pytest
+      - name: Spiral complexity frontier
+        if: always()  # surface the frontier even when a layer fails — that's the point
+        run: |
+          uv run python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, pathlib
+          p = pathlib.Path("artifacts/spiral_frontier.json")
+          if not p.exists():
+              print("No spiral frontier artifact produced."); raise SystemExit
+          d = json.loads(p.read_text())
+          print(f"### Spiral complexity frontier: L{d['frontier']}/{d['max_layer']}\n")
+          print("Implementation is verified correct through complexity layer "
+                f"**L{d['frontier']}**.\n")
+          print("| Layer | Status | Passed |")
+          print("|---|---|---|")
+          for k in range(1, d["max_layer"] + 1):
+              rec = d["layers"][str(k)]
+              total = rec["passed"] + rec["failed"]
+              status = "ok" if (total and rec["failed"] == 0) else ("FAIL" if total else "-")
+              print(f"| L{k} | {status} | {rec['passed']}/{total} |")
+          PY
 
   retrain:
     # Retraining trigger: run on demand or on a schedule.
