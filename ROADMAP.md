@@ -50,8 +50,10 @@ Where the project is and where it's going. This is a **synthetic-data demo** (se
   bolted on.
 
 ### Productionisation
-- **Multi-tenant frontend.** A minimal Streamlit login demo against the API (design in
-  [`docs/MULTI_TENANCY.md`](docs/MULTI_TENANCY.md)).
+- **Multi-tenant frontend — minimal built** ([`frontend/streamlit_app.py`](frontend/streamlit_app.py)):
+  a login-gated Streamlit UI over the API with tenant-scoped predict / design / history (session-layer
+  isolation). *Next:* the API-side tenant machinery — `TenantContext` + API-key/JWT auth + `tenant_id`
+  on all rows with Postgres row-level security (see [`docs/MULTI_TENANCY.md`](docs/MULTI_TENANCY.md)).
 
 ### Engineering hygiene
 - Google-style docstrings (ruff `D`), `mypy`, a coverage gate (`pytest-cov`), and expanded CI stages

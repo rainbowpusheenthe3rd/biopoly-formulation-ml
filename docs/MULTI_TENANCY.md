@@ -1,7 +1,9 @@
 # Multi-tenancy & a client-login frontend — design note
 
-> **Status: design, not built.** The repo today ships a single-tenant demo API
-> ([`api/main.py`](../src/biopoly/api/main.py)). This note sketches how it would grow
+> **Status: mostly design; a minimal login frontend is built.** The repo ships a
+> single-tenant demo API ([`api/main.py`](../src/biopoly/api/main.py)) plus a small
+> login-gated Streamlit UI ([`frontend/streamlit_app.py`](../frontend/streamlit_app.py))
+> that demonstrates the tenant UX (step 3 below). This note sketches how it would grow
 > into a service that several client organisations ("tenants") log into and use in
 > isolation — the natural next step once more than one customer is on it.
 
@@ -68,11 +70,16 @@ just made usable:
 ## Phased rollout
 1. `TenantContext` dependency + API-key auth + `tenant_id` on all rows and queries.
 2. Postgres RLS + per-tenant quotas + audit log.
-3. Minimal Streamlit login frontend (shared model, isolated data).
+3. **Minimal Streamlit login frontend (built)** — `frontend/streamlit_app.py`: login →
+   tenant-scoped predict / design / history over the API. Isolation is session-layer
+   here (a demo); DB-level isolation is steps 1–2. Run:
+   `uv run --extra frontend streamlit run frontend/streamlit_app.py` (API up separately).
 4. Per-tenant calibration, then per-tenant models for tenants with the data to justify it.
 
 ## What exists vs what's next
 - **Exists:** the single-tenant FastAPI service, the model registry (versioning/
-  promotion that per-tenant models would reuse), and calibrated intervals.
-- **Next (not built):** everything above. The smallest useful increment is step 1 +
-  a minimal Streamlit login demo against the current API.
+  promotion that per-tenant models would reuse), calibrated intervals, and the minimal
+  Streamlit login frontend (step 3, session-layer isolation).
+- **Next (not built):** the API-side tenant machinery — `TenantContext` + API-key/JWT
+  auth + `tenant_id` on all rows with Postgres RLS (steps 1–2), then per-tenant
+  calibration/models (step 4).
