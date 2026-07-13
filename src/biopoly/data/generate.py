@@ -13,7 +13,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from biopoly import TARGETS
+from biopoly import TARGETS, signals
 from biopoly.config import Settings, settings
 from biopoly.data.chemistry import ADDITIVES, POLYMERS, Formulation, forward_true
 from biopoly.data.schema import TENSILE_PROTOCOLS
@@ -86,9 +86,21 @@ def _measure(true: dict[str, float], protocol: str, rng: np.random.Generator) ->
     return out
 
 
-def build_dataset(cfg: Settings | None = None) -> pd.DataFrame:
+def build_dataset(
+    cfg: Settings | None = None, *, with_signal_features: bool = False
+) -> pd.DataFrame:
+    """Build the synthetic dataset.
+
+    With ``with_signal_features=True`` each row also carries DSC-derived features
+    (``dsc_*``): a synthetic thermogram per formulation is processed and peak-picked
+    (see :mod:`biopoly.signals`). Used for the signal-features ablation; off by
+    default so the base dataset stays lean.
+    """
     cfg = cfg or settings
     rng = np.random.default_rng(cfg.seed)
+    # Dedicated RNG for instrument noise, so signal features don't perturb the
+    # formulation-sampling stream (the dataset is otherwise identical with/without).
+    dsc_rng = np.random.default_rng(cfg.seed + 2) if with_signal_features else None
     dates = pd.to_datetime(
         rng.uniform(
             pd.Timestamp(cfg.start_date).value,
@@ -100,14 +112,26 @@ def build_dataset(cfg: Settings | None = None) -> pd.DataFrame:
     # forward model can use, and the baseline the mid-2025 shift is a regime change on.
     # Drawn from a dedicated RNG so it does not perturb the formulation-sampling stream.
     feedstock_quality = seasonal_feedstock_quality(dates, rng=np.random.default_rng(cfg.seed + 1))
+    # Realized-crystallinity latent per sample (batch/thermal-history variation the
+    # recipe doesn't capture; a DSC thermogram does). Dedicated RNG so it doesn't
+    # perturb the formulation-sampling stream. Drives haze/degradation in forward_true.
+    crystallinity = np.exp(
+        np.random.default_rng(cfg.seed + 3).normal(0.0, 0.18, size=cfg.n_samples)
+    )
 
     rows: list[dict] = []
     for i in range(cfg.n_samples):
         form = _sample_formulation(rng)
         date = dates[i]
         quality = float(feedstock_quality[i])
+        xtal = float(crystallinity[i])
         after_shift = np.datetime64(date) >= _SHIFT_DATE and form.polymer_frac.get("PBS", 0) > 0
-        true = forward_true(form, after_supplier_shift=bool(after_shift), feedstock_quality=quality)
+        true = forward_true(
+            form,
+            after_supplier_shift=bool(after_shift),
+            feedstock_quality=quality,
+            crystallinity=xtal,
+        )
         protocol = str(rng.choice(TENSILE_PROTOCOLS))
         meas = _measure(true, protocol, rng)
 
@@ -120,6 +144,11 @@ def build_dataset(cfg: Settings | None = None) -> pd.DataFrame:
         row["sample_id"] = f"NN-{i:05d}"
         row["date"] = date
         row["supplier_batch"] = "S2" if np.datetime64(date) >= _SHIFT_DATE else "S1"
+        if with_signal_features:
+            x_dsc, y_dsc = signals.dsc_from_row(row, crystallinity_scale=xtal, rng=dsc_rng)
+            feats = signals.extract_features(x_dsc, signals.process_signal(x_dsc, y_dsc))
+            for name, value in feats.items():
+                row[f"dsc_{name}"] = value
         rows.append(row)
 
     df = pd.DataFrame(rows)

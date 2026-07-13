@@ -5,7 +5,7 @@
 
 ## Data
 2000 rows, 24 columns; missing per target (structured, not-at-random):
-tensile 0%, melt 0%, biodegradation 24%, water 0%, optical 32%.
+tensile 0%, melt 0%, biodegradation 24%, water 0%, optical 33%.
 
 ![target distributions](figures/target_distributions.png)
 
@@ -14,11 +14,11 @@ tensile 0%, melt 0%, biodegradation 24%, water 0%, optical 32%.
 |---|---|---|---|---|---|---|
 | tensile_strength_mpa | 400 | 2.38 | 3.38 | 0.921 | 0.57 | 0.71 |
 | melt_flow_index_g10min | 400 | 1.83 | 3.09 | 0.882 | 0.58 | 0.83 |
-| biodegradation_60d_pct | 294 | 3.48 | 4.72 | 0.939 | 0.54 | 0.93 |
+| biodegradation_60d_pct | 295 | 4.97 | 6.40 | 0.891 | 0.53 | 0.80 |
 | water_absorption_pct | 400 | 0.44 | 0.82 | 0.984 | 0.59 | 0.95 |
-| optical_clarity_pct | 280 | 3.25 | 4.89 | 0.928 | 0.53 | 0.82 |
+| optical_clarity_pct | 279 | 4.59 | 6.32 | 0.885 | 0.56 | 0.65 |
 
-**mean R² = 0.931**
+**mean R² = 0.913**
 
 ![predicted vs actual](figures/pred_vs_actual.png)
 ![feature importance](figures/feature_importance.png)
@@ -32,6 +32,24 @@ baseline-corrected, Savitzky-Golay smoothed and peak-detected
 features a scientist actually reads off the instrument, rather than hand-waving the measurement.
 
 ![signal processing](figures/signal_processing.png)
+
+### Do the signal features help? An ablation
+A **realized-crystallinity latent** — batch/thermal-history variation the nominal recipe does *not*
+capture — drives haze and slow degradation, so a recipe-only model cannot see it. The DSC-derived
+features recover it: adding them lifts **optical clarity** and **biodegradation** R² materially, at a
+small honest cost on tensile (for which the thermogram is just noise). This is what makes
+characterisation signal worth extracting — made measurable.
+
+| target | recipe only | + DSC signal | Δ R² |
+|---|---|---|---|
+| tensile | 0.921 | 0.909 | -0.012 |
+| melt | 0.882 | 0.884 | +0.001 |
+| biodegradation | 0.891 | 0.929 | +0.037 |
+| water | 0.984 | 0.984 | +0.000 |
+| optical | 0.885 | 0.913 | +0.028 |
+| **mean** | 0.913 | 0.924 | +0.011 |
+
+![signal ablation](figures/signal_ablation.png)
 
 ## Seasonality (feedstock quality over time)
 Bio-feedstock purity follows an annual cycle (harvest -> storage -> depletion) on a slow
@@ -47,13 +65,13 @@ any ML model must beat is **seasonal-naive** ("next September looks like last Se
 
 ## Inverse design (target spec -> formulation)
 **Achievable target** `{'tensile_strength_mpa': 50.0, 'optical_clarity_pct': 80.0, 'water_absorption_pct': 1.0}`
-- predicted: `{'tensile_strength_mpa': 49.7, 'melt_flow_index_g10min': 10.0, 'biodegradation_60d_pct': 15.3, 'water_absorption_pct': 1.73, 'optical_clarity_pct': 75.9}`
-- formulation: `{'polymers': {'PLA': 0.914}, 'additives': {'plasticizer': 0.039, 'fibre': 0.031, 'chain_extender': 0.016}, 'process_temp_c': 188.7, 'process_time_min': 17.7}`
+- predicted: `{'tensile_strength_mpa': 51.52, 'melt_flow_index_g10min': 10.0, 'biodegradation_60d_pct': 16.53, 'water_absorption_pct': 0.81, 'optical_clarity_pct': 76.26}`
+- formulation: `{'polymers': {'PLA': 0.96}, 'additives': {'plasticizer': 0.022, 'nucleating': 0.019}, 'process_temp_c': 196.5, 'process_time_min': 38.0}`
 
 **Conflicting target** `{'tensile_strength_mpa': 55.0, 'biodegradation_60d_pct': 85.0}` (high tensile *and* high biodegradation pull apart) —
 returns the best compromise:
-- predicted: `{'tensile_strength_mpa': 31.43, 'melt_flow_index_g10min': 9.0, 'biodegradation_60d_pct': 86.08, 'water_absorption_pct': 7.06, 'optical_clarity_pct': 2.67}`
-- formulation: `{'polymers': {'PHA': 0.707}, 'additives': {'fibre': 0.293}, 'process_temp_c': 177.5, 'process_time_min': 12.9}`
+- predicted: `{'tensile_strength_mpa': 31.29, 'melt_flow_index_g10min': 6.75, 'biodegradation_60d_pct': 82.66, 'water_absorption_pct': 6.16, 'optical_clarity_pct': 6.65}`
+- formulation: `{'polymers': {'PHA': 0.537, 'PBAT': 0.043, 'PBS': 0.038, 'TPS': 0.016}, 'additives': {'plasticizer': 0.006, 'nucleating': 0.026, 'compatibilizer': 0.067, 'fibre': 0.251, 'chain_extender': 0.014}, 'process_temp_c': 167.7, 'process_time_min': 68.1}`
 
 ## Active learning (choosing the most informative next experiment)
 Data is the binding constraint, so the next experiment should be the most *informative* one — chosen
@@ -67,7 +85,7 @@ next formulation to run.
 **Does it beat random?** Benchmarked honestly — seeding from pre-shift (S1) data and scoring on the
 post-shift (S2) regime. On this synthetic problem (a strong GBDT, a pool from the same distribution
 as the test) committee-disagreement selection did **not** outperform random: mean R²
-**0.642** vs **0.671** on the post-shift test (3 seeds). That is the
+**0.638** vs **0.645** on the post-shift test (3 seeds). That is the
 honest result — uncertainty sampling's advantage needs genuine label sparsity or a sharper epistemic
 signal than a bootstrap committee provides here. The acquisition machinery is in place for the
 domains (costly labels, real distribution shift) where it pays.

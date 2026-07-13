@@ -14,11 +14,17 @@ import pandas as pd
 from biopoly.data.schema import CATEGORICAL_FEATURES, FEATURE_COLS
 
 
-def make_x(df: pd.DataFrame) -> pd.DataFrame:
-    """Return the model-input frame with categoricals typed for LightGBM."""
-    x = df[FEATURE_COLS].copy()
+def make_x(df: pd.DataFrame, cols: list[str] | None = None) -> pd.DataFrame:
+    """Return the model-input frame with categoricals typed for LightGBM.
+
+    ``cols`` defaults to ``schema.FEATURE_COLS``; pass a superset (e.g. with the
+    DSC signal features appended) to train an ablation variant.
+    """
+    cols = cols if cols is not None else FEATURE_COLS
+    x = df[cols].copy()
     for col in CATEGORICAL_FEATURES:
-        x[col] = x[col].astype("category")
+        if col in x.columns:
+            x[col] = x[col].astype("category")
     return x
 
 

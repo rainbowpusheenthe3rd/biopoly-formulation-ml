@@ -62,6 +62,7 @@ def synth_dsc(
     *,
     nucleating: float = 0.0,
     plasticizer: float = 0.0,
+    crystallinity_scale: float = 1.0,
     rng: np.random.Generator | None = None,
     x: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -71,6 +72,9 @@ def synth_dsc(
         polymer_frac: Polymer -> mass fraction.
         nucleating: Nucleating-agent fraction (raises crystallinity → sharper/taller).
         plasticizer: Plasticiser fraction (depresses Tm and crystallinity).
+        crystallinity_scale: Realized-crystallinity multiplier (~1.0) — the batch
+            latent (see :func:`biopoly.data.chemistry.forward_true`) the thermogram
+            reveals: higher means sharper, taller endotherms.
         rng: Optional generator for measurement noise; omit for a clean signal.
         x: Optional temperature axis; defaults to :func:`temperature_axis`.
 
@@ -83,8 +87,10 @@ def synth_dsc(
         f = float(polymer_frac.get(p, 0.0))
         if f <= 0.0:
             continue
-        cryst = CRYSTALLINITY[p] * (1.0 + 1.5 * nucleating - 1.2 * plasticizer)
-        cryst = float(np.clip(cryst, 0.05, 1.0))
+        cryst = (
+            CRYSTALLINITY[p] * (1.0 + 1.5 * nucleating - 1.2 * plasticizer) * crystallinity_scale
+        )
+        cryst = float(np.clip(cryst, 0.05, 1.4))
         tm = MELT_TEMP[p] - 40.0 * plasticizer  # plasticiser depresses the melt
         width = 6.0 / (0.3 + cryst)  # more crystalline → sharper endotherm
         y += (f * cryst) * np.exp(-0.5 * ((x - tm) / width) ** 2)
@@ -153,13 +159,20 @@ def extract_features(
     }
 
 
-def dsc_from_row(row, *, rng: np.random.Generator | None = None, x: np.ndarray | None = None):
+def dsc_from_row(
+    row,
+    *,
+    crystallinity_scale: float = 1.0,
+    rng: np.random.Generator | None = None,
+    x: np.ndarray | None = None,
+):
     """Convenience: synthesise a thermogram from a dataset row (frac_*/add_* columns)."""
     pfrac = {p: float(row.get(f"frac_{p}", 0.0)) for p in POLYMERS}
     return synth_dsc(
         pfrac,
         nucleating=float(row.get("add_nucleating", 0.0)),
         plasticizer=float(row.get("add_plasticizer", 0.0)),
+        crystallinity_scale=crystallinity_scale,
         rng=rng,
         x=x,
     )

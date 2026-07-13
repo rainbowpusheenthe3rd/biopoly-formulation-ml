@@ -116,7 +116,11 @@ def _mean_immiscibility(w: dict[str, float]) -> float:
 
 
 def forward_true(
-    form: Formulation, *, after_supplier_shift: bool = False, feedstock_quality: float = 1.0
+    form: Formulation,
+    *,
+    after_supplier_shift: bool = False,
+    feedstock_quality: float = 1.0,
+    crystallinity: float = 1.0,
 ) -> dict[str, float]:
     """Deterministic 'true' property means for a formulation (pre-measurement-noise).
 
@@ -129,6 +133,10 @@ def forward_true(
         feedstock_quality: Seasonal bio-feedstock purity multiplier (~1.0), from
             :func:`biopoly.timeseries.seasonal_feedstock_quality`. Purer feedstock
             yields a stronger, slightly clearer polymer.
+        crystallinity: Realized-crystallinity multiplier (~1.0) — a batch/thermal-
+            history latent the nominal recipe does *not* capture, but a DSC thermogram
+            does. Higher crystallinity means more haze (lower clarity) and slower
+            degradation. This is what makes the DSC signal features informative.
     """
     w = _norm_polymer(form.polymer_frac)
     add = form.additive_frac
@@ -192,6 +200,13 @@ def forward_true(
     # learn from the feedstock_quality covariate rather than noise.
     tensile *= feedstock_quality
     clarity *= 1.0 + 0.3 * (feedstock_quality - 1.0)
+
+    # --- realized crystallinity (batch/thermal-history latent; measured by DSC) ---
+    # Not a recipe covariate, so the recipe-only model cannot see it — but it drives
+    # haze and degradation, so the DSC-derived features that expose it are genuinely
+    # informative (see the ablation in docs/RESULTS.md).
+    clarity *= float(np.clip(1.0 - 0.55 * (crystallinity - 1.0), 0.3, 1.7))
+    biodeg *= float(np.clip(1.0 - 0.40 * (crystallinity - 1.0), 0.4, 1.6))
 
     # --- clamp to physical ranges ---
     return {

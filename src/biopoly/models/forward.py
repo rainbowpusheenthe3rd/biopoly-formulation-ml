@@ -40,16 +40,18 @@ _DEFAULT_PARAMS = dict(
 class ForwardModel:
     """Multi-output quantile forward model (one LightGBM booster per target×quantile)."""
 
-    def __init__(self, params: dict | None = None):
+    def __init__(self, params: dict | None = None, feature_cols: list[str] | None = None):
         self.params = {**_DEFAULT_PARAMS, **(params or {})}
         self.models_: dict[str, dict[str, LGBMRegressor]] = {}
-        self.feature_cols = FEATURE_COLS
+        # Feature contract; defaults to schema.FEATURE_COLS. A superset (e.g. with the
+        # DSC signal features) is used for the with-vs-without ablation.
+        self.feature_cols = feature_cols if feature_cols is not None else FEATURE_COLS
         # Optional CQR calibrator; when set, predict() returns calibrated bands.
         # Attached by biopoly-train after fitting on a held-out calibration split.
         self.conformal_ = None
 
     def fit(self, df: pd.DataFrame) -> ForwardModel:
-        x_all = make_x(df)
+        x_all = make_x(df, self.feature_cols)
         for target in TARGETS:
             mask = df[target].notna().to_numpy()
             x, y = x_all[mask], df.loc[mask, target]
@@ -66,7 +68,7 @@ class ForwardModel:
         Quantile crossing (p10 > p90 etc.) is repaired by sorting the three
         quantile predictions row-wise.
         """
-        x = make_x(df)
+        x = make_x(df, self.feature_cols)
         out: dict[str, dict[str, np.ndarray]] = {}
         for target in TARGETS:
             preds = {n: m.predict(x) for n, m in self.models_[target].items()}

@@ -119,6 +119,36 @@ def _fig_signal_processing() -> str:
     return path.name
 
 
+def _fig_signal_ablation() -> tuple[str, dict, dict]:
+    """With-vs-without DSC signal features: do they recover the crystallinity latent?"""
+    from biopoly.data.schema import FEATURE_COLS, SIGNAL_FEATURES
+    from biopoly.models.metrics import evaluate
+
+    df = build_dataset(settings, with_signal_features=True)
+    tr, te = split(df, test_size=0.2, mode="random", seed=settings.seed)
+    base = ForwardModel(feature_cols=FEATURE_COLS).fit(tr)
+    sig = ForwardModel(feature_cols=FEATURE_COLS + SIGNAL_FEATURES).fit(tr)
+    mb, ms = evaluate(te, base.predict(te)), evaluate(te, sig.predict(te))
+
+    xb = np.arange(len(TARGETS))
+    fig, ax = plt.subplots(figsize=(9, 4))
+    ax.bar(xb - 0.2, [mb[t]["r2"] for t in TARGETS], 0.4, label="recipe only", color="#C44E52")
+    ax.bar(
+        xb + 0.2, [ms[t]["r2"] for t in TARGETS], 0.4, label="recipe + DSC signal", color="#4C72B0"
+    )
+    ax.set_xticks(xb)
+    ax.set_xticklabels([t.split("_")[0] for t in TARGETS], fontsize=8)
+    ax.set_ylabel("R² on held-out test")
+    ax.set_ylim(0.80, 1.0)
+    ax.set_title("Signal ablation: DSC recovers crystallinity-driven properties", fontsize=9)
+    ax.legend(fontsize=8)
+    fig.tight_layout()
+    path = FIG / "signal_ablation.png"
+    fig.savefig(path, dpi=110, bbox_inches="tight")
+    plt.close(fig)
+    return path.name, mb, ms
+
+
 def _fig_seasonality(df: pd.DataFrame) -> tuple[str, float, float, float]:
     """STL decomposition of the monthly feedstock-quality signal + a seasonal-naive backtest.
 
@@ -225,7 +255,16 @@ def main() -> None:
     f_imp = _fig_feature_importance(model)
     f_sig = _fig_signal_processing()
     f_seas, seas_strength, naive_mae, seas_std = _fig_seasonality(df)
+    f_abl, abl_base, abl_sig = _fig_signal_ablation()
     f_al, al_labels, al_active, al_random, al_proposed = _fig_active_learning(df)
+
+    abl_rows = "\n".join(
+        f"| {t.split('_')[0]} | {abl_base[t]['r2']:.3f} | {abl_sig[t]['r2']:.3f} "
+        f"| {abl_sig[t]['r2'] - abl_base[t]['r2']:+.3f} |"
+        for t in TARGETS
+    )
+    abl_base_mean = float(np.mean([abl_base[t]["r2"] for t in TARGETS]))
+    abl_sig_mean = float(np.mean([abl_sig[t]["r2"] for t in TARGETS]))
 
     # inverse design
     achievable = {
@@ -269,6 +308,20 @@ baseline-corrected, Savitzky-Golay smoothed and peak-detected
 features a scientist actually reads off the instrument, rather than hand-waving the measurement.
 
 ![signal processing](figures/{f_sig})
+
+### Do the signal features help? An ablation
+A **realized-crystallinity latent** — batch/thermal-history variation the nominal recipe does *not*
+capture — drives haze and slow degradation, so a recipe-only model cannot see it. The DSC-derived
+features recover it: adding them lifts **optical clarity** and **biodegradation** R² materially, at
+a small honest cost on tensile (for which the thermogram is just noise). This is what makes
+characterisation signal worth extracting — made measurable.
+
+| target | recipe only | + DSC signal | Δ R² |
+|---|---|---|---|
+{abl_rows}
+| **mean** | {abl_base_mean:.3f} | {abl_sig_mean:.3f} | {abl_sig_mean - abl_base_mean:+.3f} |
+
+![signal ablation](figures/{f_abl})
 
 ## Seasonality (feedstock quality over time)
 Bio-feedstock purity follows an annual cycle (harvest -> storage -> depletion) on a slow
@@ -319,7 +372,7 @@ domains (costly labels, real distribution shift) where it pays.
 ```
 """
     (DOCS / "RESULTS.md").write_text(md, encoding="utf-8")
-    print("wrote docs/RESULTS.md and 6 figures under docs/figures/")
+    print("wrote docs/RESULTS.md and 7 figures under docs/figures/")
     print(f"mean R2 = {summary_row(metrics):.3f}; drift alert = {drift['alert']}")
 
 

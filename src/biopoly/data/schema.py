@@ -20,6 +20,17 @@ NUMERIC_FEATURES = POLYMER_FRAC_COLS + ADDITIVE_COLS + PROCESS_COLS + CONTEXT_CO
 CATEGORICAL_FEATURES = ["primary_polymer", "tensile_protocol"]
 FEATURE_COLS = NUMERIC_FEATURES + CATEGORICAL_FEATURES
 
+# DSC-derived signal features (see biopoly.signals). An optional ablation feature
+# group — added to the dataset only when the generator is asked for them, and NOT
+# part of the default FEATURE_COLS.
+SIGNAL_FEATURES = [
+    "dsc_n_peaks",
+    "dsc_dominant_temp_c",
+    "dsc_total_area",
+    "dsc_mean_width_c",
+    "dsc_max_height",
+]
+
 TENSILE_PROTOCOLS = ["ISO527", "ASTMD638"]
 
 __all__ = [
@@ -27,6 +38,7 @@ __all__ = [
     "ADDITIVE_COLS",
     "PROCESS_COLS",
     "CONTEXT_COLS",
+    "SIGNAL_FEATURES",
     "NUMERIC_FEATURES",
     "CATEGORICAL_FEATURES",
     "FEATURE_COLS",

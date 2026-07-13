@@ -14,21 +14,25 @@ Where the project is and where it's going. This is a **synthetic-data demo** (se
   FastAPI.
 - **Signal processing** — synthetic DSC thermograms → `scipy.signal` DSP → melt-peak feature
   extraction ([`signals.py`](src/biopoly/signals.py)).
+- **Seasonality → model** — the seasonal feedstock signal ([`timeseries.py`](src/biopoly/timeseries.py))
+  is wired into the generator and in as a `feedstock_quality` covariate, with an STL decomposition
+  figure and a seasonal-naïve baseline; the supplier shift reads as a regime change on top.
+- **Signal features → model** — a realized-crystallinity latent the recipe can't see, recovered by the
+  DSC features: a with-vs-without ablation lifts clarity and biodegradation R² (see `RESULTS.md`).
+- **Active learning** — query-by-committee acquisition (epistemic disagreement) + a "propose next
+  experiment" search, reusing the inverse loop ([`active_learning.py`](src/biopoly/active_learning.py)).
+  Benchmarked honestly: on this synthetic problem it does *not* beat random; the machinery is in place
+  for domains with genuine label scarcity / shift.
 - **Testing** — a spiral-layered suite reporting a **complexity frontier**
   ([`tests/conftest.py`](tests/conftest.py)).
 
 ## Next
 
 ### Data & signal realism
-- **Seasonality → model.** The seasonal feedstock signal ([`timeseries.py`](src/biopoly/timeseries.py))
-  is standalone today; wire it into the generator and in as a model covariate, add an STL
-  decomposition figure and a seasonal-naïve forecast baseline. Drift then reads as a regime change
-  *on top* of the seasonal baseline.
-- **Signal features → model.** Feed the DSC-derived features into the forward model and quantify
-  their lift (feature importance / with-vs-without ablation).
-- **Data strategy.** A `DATA_STRATEGY.md` — synthetic → literature-derived priors → **active
-  learning** (reuse the inverse-design loop to choose the next most-informative experiment) → a
-  small real seed, with honest limitations.
+- **Data strategy.** A `DATA_STRATEGY.md` — synthetic → literature-derived priors → active learning →
+  a small real seed, with honest limitations. (The active-learning machinery already exists.)
+- **Real-data seed.** Even a handful of literature-sourced real formulations would break the
+  "all synthetic" ceiling more than any extra modelling.
 
 ### Modelling depth
 - **Drift → retrain, end-to-end.** Exercise the full detect → retrain → validate → register loop

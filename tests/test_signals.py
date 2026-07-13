@@ -54,6 +54,14 @@ def test_nucleating_agent_sharpens_peaks():
     assert nucleated["mean_width_c"] < plain["mean_width_c"]
 
 
+def test_crystallinity_scale_sharpens_endotherm():
+    # The realized-crystallinity latent should make the melt peak taller and narrower.
+    low = _features_for({"PBS": 1.0}, crystallinity_scale=0.8)
+    high = _features_for({"PBS": 1.0}, crystallinity_scale=1.2)
+    assert high["max_height"] > low["max_height"]
+    assert high["mean_width_c"] < low["mean_width_c"]
+
+
 def test_extract_features_deterministic():
     x, y = synth_dsc({"PLA": 0.6, "PBS": 0.4})  # no rng → deterministic
     assert extract_features(x, process_signal(x, y)) == extract_features(x, process_signal(x, y))

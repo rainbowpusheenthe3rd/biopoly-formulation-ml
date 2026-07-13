@@ -4,8 +4,10 @@ import numpy as np
 import pytest
 
 from biopoly import TARGETS
+from biopoly.config import Settings
 from biopoly.data.chemistry import Formulation, forward_true
-from biopoly.data.schema import FEATURE_COLS
+from biopoly.data.generate import build_dataset
+from biopoly.data.schema import FEATURE_COLS, SIGNAL_FEATURES
 
 pytestmark = pytest.mark.layer(3)  # data generation
 
@@ -59,3 +61,18 @@ def test_feedstock_quality_column_wired(small_df):
     assert q.notna().all()
     assert ((q >= 0.5) & (q <= 1.5)).all()
     assert q.std() > 0.0
+
+
+def test_crystallinity_lowers_clarity():
+    # the realized-crystallinity latent drives haze: higher crystallinity -> lower clarity
+    form = Formulation({"PLA": 1.0}, {}, 200.0, 20.0)
+    low = forward_true(form, crystallinity=0.85)
+    high = forward_true(form, crystallinity=1.15)
+    assert high["optical_clarity_pct"] < low["optical_clarity_pct"]
+
+
+def test_signal_features_added_when_requested():
+    df = build_dataset(Settings(n_samples=150, seed=3), with_signal_features=True)
+    for col in SIGNAL_FEATURES:
+        assert col in df.columns
+    assert df["dsc_max_height"].std() > 0.0  # a real, varying signal feature
