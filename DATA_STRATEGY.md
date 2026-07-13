@@ -22,15 +22,17 @@ that regime, and where the honest limits are. It is a **synthetic-data demo**; t
 
 ## The seed so far
 
-[`data/real_seed.csv`](data/real_seed.csv) holds **indicative literature mid-ranges for the neat
-polymers** (PLA, PHA, PBAT, PBS, TPS, PCL), and only the commonly and robustly reported properties —
-tensile strength, water absorption, optical clarity. Melt-flow index and 60-day biodegradation are
-strongly condition-dependent and are deliberately **left out** until primary citations are attached.
+[`data/real_seed.csv`](data/real_seed.csv) holds neat-polymer reference values (PLA, PHA, PBAT, PBS,
+TPS, PCL) for the commonly and robustly reported properties. Melt-flow index and 60-day biodegradation
+are strongly condition-dependent and are deliberately **left out** until they can be sourced properly.
 
-**Provenance — read honestly:** these are *indicative reference values* from commercial datasheets
-(e.g. NatureWorks Ingeo for PLA, BASF Ecoflex for PBAT) and biopolymer review literature, rounded to
-mid-range. They are a *starting point*, not primary-cited measurements; attach and verify specific
-citations before treating any value as authoritative.
+**Provenance — read honestly, per column:**
+- **Tensile strength — sourced.** Each row carries a literature range (`tensile_range_mpa`) and a
+  per-row `source`; values are mid-range. PLA is anchored on a NatureWorks Ingeo datasheet (7000D
+  ~65 MPa) and PBAT notes the datasheet caveat that oriented **film** grades (BASF ecoflex ~35 MPa)
+  read far higher than **bulk** PBAT (~10–20). See the References below.
+- **Water absorption & optical clarity — still indicative.** Not yet tied to primary citations;
+  treat as placeholders pending sourcing.
 
 ## First use: anchoring, not training
 
@@ -40,13 +42,15 @@ honest first use is **anchoring** — checking the synthetic ground truth agains
 
 - The synthetic neat-polymer outputs sit within a **~12% median gap** of the literature seed — the
   generator is anchored in reality, not invented.
-- The seed also **flags where it is not**: PBAT tensile strength (synthetic ~12 MPa vs literature ~20)
-  and TPS water absorption (~25% vs ~40) are the clearest calibration targets. This is real data doing
-  real work — surfacing where the synthetic priors should be tightened.
+- The seed also **flags where it is not**: the clearest *sourced* target is **PCL tensile** (synthetic
+  ~16 MPa vs literature ~20–30). (Sourcing PBAT properly also *corrected an earlier guess* — bulk PBAT
+  is ~10–20 MPa, so the synthetic anchor of ~12 is fine; the 35 MPa datasheet figure is oriented film.)
+  This is real data doing real work — both validating the priors and correcting them.
 
 ## Honest limitations
 
-- Indicative mid-ranges, not primary-cited measurements; partial (3 of 5 properties).
+- Tensile is literature-sourced (datasheet + review ranges); water absorption and optical clarity are
+  still indicative; MFI and 60-day biodegradation are omitted. So: partial, and secondary-sourced.
 - Neat polymers only — no blends, no processing conditions, so not training-ready yet.
 - Six rows: enough to anchor and to start the habit of folding real data in, nothing more.
 
@@ -56,3 +60,19 @@ Attach primary citations to each value; add real **formulations** (recipe + proc
 properties) as they can be sourced; then either blend a small real set into training or hold it out as a
 real-world validation set for the synthetic-trained model. The scarce-data machinery — priors, active
 learning, calibrated uncertainty, drift/retrain — is already in place to make the most of each real point.
+
+## References
+
+Sources consulted for the tensile seed (secondary sources; attach primary citations before
+authoritative use):
+
+- NatureWorks Ingeo — Injection-molding technical data sheets (e.g. 3100HP, 7000D ~65 MPa):
+  <https://www.natureworksllc.com/Technical-Resources>
+- BASF ecoflex® F Blend C1200 — product data sheet (~35 MPa MD film, ISO 527):
+  <https://plastics-rubber.basf.com/global/en/performance_polymers/products/ecoflex>
+- "Biodegradable Plastics Compared: PHA, PHB, PBAT, PLA, PBS, PCL, TPS" — property overview
+  (tensile ranges used here): <https://specialty-polymer.com/biodegradable-compared-pha-phb-pbat-pla-pbs-pcl-and-tps/>
+- "Critical Review on Polylactic Acid: Properties, Structure, Processing, Biocomposites, and
+  Nanocomposites", *Materials* (PMC9228835): <https://pmc.ncbi.nlm.nih.gov/articles/PMC9228835/>
+- "Recent advances in biodegradable polymer blends and their biocomposites: a comprehensive review",
+  *Green Chemistry* (RSC, 2025), DOI 10.1039/D5GC01294E: <https://pubs.rsc.org/en/content/articlehtml/2025/gc/d5gc01294e>

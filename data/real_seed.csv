@@ -1,7 +1,7 @@
-polymer,tensile_strength_mpa,water_absorption_pct,optical_clarity_pct,source
-PLA,59,0.6,90,"NatureWorks Ingeo datasheets; biopolymer review literature"
-PHA,25,0.8,15,"biopolymer review literature (PHBV grades)"
-PBAT,20,1.0,60,"BASF Ecoflex datasheet; biopolymer review literature"
-PBS,34,1.0,45,"biopolymer review literature"
-TPS,3.5,40,30,"biopolymer review literature (thermoplastic starch)"
-PCL,16,1.0,50,"biopolymer review literature"
+polymer,tensile_strength_mpa,tensile_range_mpa,water_absorption_pct,optical_clarity_pct,source
+PLA,62,50-70,0.5,90,"NatureWorks Ingeo TDS (7000D ~65 MPa, ISO 527); biopolymer property reviews"
+PHA,30,20-40,0.8,15,"biodegradable-polymer property review (PHA/PHBV grades)"
+PBAT,15,10-20,1.0,60,"property review (10-20 MPa bulk); BASF ecoflex F Blend C1200 TDS ~35 MPa MD film"
+PBS,35,30-40,1.0,45,"biodegradable-polymer property review"
+TPS,6,5-15,40,30,"property review (thermoplastic starch; strongly plasticiser/moisture dependent)"
+PCL,25,20-30,1.0,50,"biodegradable-polymer property review"

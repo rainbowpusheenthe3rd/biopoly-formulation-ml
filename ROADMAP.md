@@ -34,9 +34,9 @@ Where the project is and where it's going. This is a **synthetic-data demo** (se
 
 ### Data & signal realism
 - **Real-data seed — started.** [`DATA_STRATEGY.md`](DATA_STRATEGY.md) + a small literature seed
-  ([`data/real_seed.csv`](data/real_seed.csv)) used to *anchor* the synthetic generator (~12% median
-  gap; flags PBAT tensile and TPS water as calibration targets). Next: attach primary citations, then
-  real *formulations* with processing metadata that can actually augment training.
+  ([`data/real_seed.csv`](data/real_seed.csv), sourced tensile with citations) used to *anchor* the
+  synthetic generator (~12% median gap; flags PCL tensile as a calibration target). Next: primary
+  citations + real *formulations* with processing metadata that can actually augment training.
 
 ### Modelling depth
 - **Inverse design — MCTS.** Add a Monte-Carlo tree-search escalation alongside Bayesian
