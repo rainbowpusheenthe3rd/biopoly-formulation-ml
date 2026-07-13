@@ -233,6 +233,59 @@ def _fig_active_learning(df: pd.DataFrame) -> tuple[str, list, np.ndarray, np.nd
     return path.name, labels, active, random_sel, proposed
 
 
+def _fig_embeddings(df: pd.DataFrame) -> tuple[str, pd.DataFrame, float, float]:
+    """Learned polymer embeddings: cosine-similarity heatmap + 2-D map, and an ablation."""
+    from biopoly.data.schema import FEATURE_COLS
+    from biopoly.models.metrics import evaluate, summary_row
+    from biopoly.representation import (
+        cosine_similarity_matrix,
+        formulation_embeddings,
+        learn_embeddings,
+        project_2d,
+    )
+
+    tr, te = split(df, test_size=0.2, mode="random", seed=settings.seed)
+    emb = learn_embeddings(tr)
+    cos = cosine_similarity_matrix(emb)
+    xy = project_2d(emb, seed=settings.seed)
+
+    pe_tr, pe_te = formulation_embeddings(tr, emb), formulation_embeddings(te, emb)
+    tr2, te2 = pd.concat([tr, pe_tr], axis=1), pd.concat([te, pe_te], axis=1)
+    pcols = list(pe_tr.columns)
+    base = ForwardModel(feature_cols=FEATURE_COLS).fit(tr2)
+    embm = ForwardModel(feature_cols=FEATURE_COLS + pcols).fit(tr2)
+    r2_base = summary_row(evaluate(te2, base.predict(te2)))
+    r2_emb = summary_row(evaluate(te2, embm.predict(te2)))
+
+    fig, ax = plt.subplots(1, 2, figsize=(12, 4.5))
+    im = ax[0].imshow(cos.to_numpy(), vmin=-1, vmax=1, cmap="RdBu_r")
+    ax[0].set_xticks(range(len(cos)), cos.index, fontsize=8)
+    ax[0].set_yticks(range(len(cos)), cos.index, fontsize=8)
+    for i in range(len(cos)):
+        for j in range(len(cos)):
+            ax[0].text(j, i, f"{cos.iat[i, j]:.2f}", ha="center", va="center", fontsize=7)
+    ax[0].set_title("Polymer embedding cosine similarity", fontsize=9)
+    fig.colorbar(im, ax=ax[0], fraction=0.046)
+    if xy.shape[1] == 2:
+        ax[1].scatter(xy["pc1"], xy["pc2"], color="#4C72B0")
+        for p in xy.index:
+            ax[1].annotate(
+                p,
+                (xy.loc[p, "pc1"], xy.loc[p, "pc2"]),
+                fontsize=8,
+                xytext=(4, 4),
+                textcoords="offset points",
+            )
+    ax[1].set_title("Embedding (PCA 2-D)", fontsize=9)
+    ax[1].set_xlabel("pc1")
+    ax[1].set_ylabel("pc2")
+    fig.tight_layout()
+    path = FIG / "embeddings.png"
+    fig.savefig(path, dpi=110, bbox_inches="tight")
+    plt.close(fig)
+    return path.name, cos, r2_base, r2_emb
+
+
 def _fig_retrain(df: pd.DataFrame) -> tuple[str, dict]:
     """Champion (pre-shift) vs retrained (S1+S2) R² on the post-shift regime."""
     from biopoly.monitoring.retrain import retrain_cycle
@@ -297,6 +350,15 @@ def main() -> None:
     f_seas, seas_strength, naive_mae, seas_std = _fig_seasonality(df)
     f_abl, abl_base, abl_sig = _fig_signal_ablation()
     f_al, al_labels, al_active, al_random, al_proposed = _fig_active_learning(df)
+    f_emb, emb_cos, emb_r2_base, emb_r2 = _fig_embeddings(df)
+    import itertools
+
+    _pairs = [(a, b, emb_cos.loc[a, b]) for a, b in itertools.combinations(emb_cos.index, 2)]
+    _top = max(_pairs, key=lambda x: x[2])
+    _bot = min(_pairs, key=lambda x: x[2])
+    emb_top = f"{_top[0]}~{_top[1]} ({_top[2]:.2f})"
+    emb_bot = f"{_bot[0]}~{_bot[1]} ({_bot[2]:.2f})"
+
     f_retrain, cyc = _fig_retrain(df)
     rt_recover = {t: cyc["retrained"][t]["r2"] - cyc["champion"][t]["r2"] for t in TARGETS}
     rt_worst = max(rt_recover, key=rt_recover.get)  # the target retraining recovers most
@@ -378,6 +440,16 @@ any ML model must beat is **seasonal-naive** ("next September looks like last Se
 
 ![feedstock-quality seasonality](figures/{f_seas})
 
+## Learned polymer representation (embeddings vs descriptors)
+Each polymer gets a **learned embedding** — its standardised mean property signature across the data
+([`representation.py`](../src/biopoly/representation.py)). The cosine geometry is interpretable: the
+closest pair is **{emb_top}** and the most opposed is **{emb_bot}**. Honest ablation: feeding a
+formulation's blended embedding to the forward model does **not** beat the descriptor baseline here
+(mean R² {emb_r2_base:.3f} -> {emb_r2:.3f}) — the recipe columns already encode this — so the
+embedding earns its place as an *interpretability* tool, not a predictive add-on.
+
+![polymer embeddings](figures/{f_emb})
+
 ## Inverse design (target spec -> formulation)
 **Achievable target** `{achievable}`
 - predicted: `{inv["predicted"]}`
@@ -428,7 +500,7 @@ the retrained model only if it wins ([`registry.py`](../src/biopoly/models/regis
 ![retrain on drift](figures/{f_retrain})
 """
     (DOCS / "RESULTS.md").write_text(md, encoding="utf-8")
-    print("wrote docs/RESULTS.md and 8 figures under docs/figures/")
+    print("wrote docs/RESULTS.md and 9 figures under docs/figures/")
     print(f"mean R2 = {summary_row(metrics):.3f}; drift alert = {drift['alert']}")
 
 

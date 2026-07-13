@@ -23,6 +23,10 @@ Where the project is and where it's going. This is a **synthetic-data demo** (se
   experiment" search, reusing the inverse loop ([`active_learning.py`](src/biopoly/active_learning.py)).
   Benchmarked honestly: on this synthetic problem it does *not* beat random; the machinery is in place
   for domains with genuine label scarcity / shift.
+- **Learned polymer representation** ([`representation.py`](src/biopoly/representation.py)) — a
+  supervised per-polymer embedding whose cosine geometry is interpretable (PHA~PBS closest, PLA~TPS
+  most opposed); an honest ablation shows it does not beat the descriptors predictively, so it serves
+  as an interpretability tool.
 - **Retrain on drift — end-to-end** ([`monitoring/retrain.py`](src/biopoly/monitoring/retrain.py)) — a
   pre-shift champion degrades on the post-shift regime (melt-flow index R² 0.73) and retraining on the
   new data recovers it (0.79), validated on held-out post-shift data; the drift alert drives the action
@@ -44,8 +48,6 @@ Where the project is and where it's going. This is a **synthetic-data demo** (se
   well (a real tree policy + rollouts over the formulation space, and an honest benchmark vs the
   warm-started TPE we already have). Deliberately deferred to its own implementation stage rather than
   bolted on.
-- **Learned polymer representation.** Compare learned embeddings against the current descriptor
-  features (cosine-similarity analysis).
 
 ### Productionisation
 - **Multi-tenant frontend.** A minimal Streamlit login demo against the API (design in

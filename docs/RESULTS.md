@@ -63,6 +63,16 @@ any ML model must beat is **seasonal-naive** ("next September looks like last Se
 
 ![feedstock-quality seasonality](figures/seasonality.png)
 
+## Learned polymer representation (embeddings vs descriptors)
+Each polymer gets a **learned embedding** — its standardised mean property signature across the data
+([`representation.py`](../src/biopoly/representation.py)). The cosine geometry is interpretable: the
+closest pair is **PHA~PBS (0.40)** and the most opposed is **PLA~TPS (-0.76)**. Honest ablation: feeding a
+formulation's blended embedding to the forward model does **not** beat the descriptor baseline here
+(mean R² 0.913 -> 0.916) — the recipe columns already encode this — so the
+embedding earns its place as an *interpretability* tool, not a predictive add-on.
+
+![polymer embeddings](figures/embeddings.png)
+
 ## Inverse design (target spec -> formulation)
 **Achievable target** `{'tensile_strength_mpa': 50.0, 'optical_clarity_pct': 80.0, 'water_absorption_pct': 1.0}`
 - predicted: `{'tensile_strength_mpa': 51.52, 'melt_flow_index_g10min': 10.0, 'biodegradation_60d_pct': 16.53, 'water_absorption_pct': 0.81, 'optical_clarity_pct': 76.26}`
