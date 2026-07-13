@@ -229,6 +229,34 @@ def _fig_active_learning(df: pd.DataFrame) -> tuple[str, list, np.ndarray, np.nd
     return path.name, labels, active, random_sel, proposed
 
 
+def _fig_retrain(df: pd.DataFrame) -> tuple[str, dict]:
+    """Champion (pre-shift) vs retrained (S1+S2) R² on the post-shift regime."""
+    from biopoly.monitoring.retrain import retrain_cycle
+
+    cyc = retrain_cycle(df, seed=0)
+    xb = np.arange(len(TARGETS))
+    fig, ax = plt.subplots(figsize=(9, 4))
+    ax.bar(
+        xb - 0.2, [cyc["champion"][t]["r2"] for t in TARGETS], 0.4,
+        label="stale champion (S1-trained)", color="#C44E52",
+    )
+    ax.bar(
+        xb + 0.2, [cyc["retrained"][t]["r2"] for t in TARGETS], 0.4,
+        label="retrained (S1 + new S2)", color="#55A868",
+    )
+    ax.set_xticks(xb)
+    ax.set_xticklabels([t.split("_")[0] for t in TARGETS], fontsize=8)
+    ax.set_ylabel("R² on post-shift (S2) test")
+    ax.set_ylim(0.6, 1.0)
+    ax.set_title("Retrain-on-drift: recovery on the post-shift regime", fontsize=9)
+    ax.legend(fontsize=8)
+    fig.tight_layout()
+    path = FIG / "retrain.png"
+    fig.savefig(path, dpi=110, bbox_inches="tight")
+    plt.close(fig)
+    return path.name, cyc
+
+
 def _metrics_table_md(metrics) -> str:
     rows = ["| target | n | MAE | RMSE | R² | coverage | within-tol |",
             "|---|---|---|---|---|---|---|"]
@@ -257,6 +285,9 @@ def main() -> None:
     f_seas, seas_strength, naive_mae, seas_std = _fig_seasonality(df)
     f_abl, abl_base, abl_sig = _fig_signal_ablation()
     f_al, al_labels, al_active, al_random, al_proposed = _fig_active_learning(df)
+    f_retrain, cyc = _fig_retrain(df)
+    rt_recover = {t: cyc["retrained"][t]["r2"] - cyc["champion"][t]["r2"] for t in TARGETS}
+    rt_worst = max(rt_recover, key=rt_recover.get)  # the target retraining recovers most
 
     abl_rows = "\n".join(
         f"| {t.split('_')[0]} | {abl_base[t]['r2']:.3f} | {abl_sig[t]['r2']:.3f} "
@@ -370,9 +401,22 @@ domains (costly labels, real distribution shift) where it pays.
 ```
 {format_report(drift)}
 ```
+
+## Retrain on drift (detect -> retrain -> validate -> register)
+An alert is only worth raising if it drives an action. The full loop runs against the supplier
+shift: a champion trained on **pre-shift (S1)** data is scored on a held-out **post-shift (S2)**
+test; the monitor flags `{cyc["drift"]["drifted_columns"]}`; a model **retrained on S1 + new S2**
+is validated on the same post-shift test. The champion has degraded most on
+**{rt_worst.split("_")[0]}** (R² {cyc["champion"][rt_worst]["r2"]:.3f}) — a feature the monitor
+flagged — and retraining recovers it (R² {cyc["retrained"][rt_worst]["r2"]:.3f}); mean R²
+{cyc["champion_mean_r2"]:.3f} -> {cyc["retrained_mean_r2"]:.3f}. `register_if_better` then promotes
+the retrained model only if it wins ([`registry.py`](../src/biopoly/models/registry.py),
+[`scripts/retrain.py`](../scripts/retrain.py)).
+
+![retrain on drift](figures/{f_retrain})
 """
     (DOCS / "RESULTS.md").write_text(md, encoding="utf-8")
-    print("wrote docs/RESULTS.md and 7 figures under docs/figures/")
+    print("wrote docs/RESULTS.md and 8 figures under docs/figures/")
     print(f"mean R2 = {summary_row(metrics):.3f}; drift alert = {drift['alert']}")
 
 

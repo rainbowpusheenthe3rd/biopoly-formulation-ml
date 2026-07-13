@@ -36,8 +36,8 @@ features a scientist actually reads off the instrument, rather than hand-waving 
 ### Do the signal features help? An ablation
 A **realized-crystallinity latent** — batch/thermal-history variation the nominal recipe does *not*
 capture — drives haze and slow degradation, so a recipe-only model cannot see it. The DSC-derived
-features recover it: adding them lifts **optical clarity** and **biodegradation** R² materially, at a
-small honest cost on tensile (for which the thermogram is just noise). This is what makes
+features recover it: adding them lifts **optical clarity** and **biodegradation** R² materially, at
+a small honest cost on tensile (for which the thermogram is just noise). This is what makes
 characterisation signal worth extracting — made measurable.
 
 | target | recipe only | + DSC signal | Δ R² |
@@ -102,3 +102,16 @@ drift: 1/4 columns drifted -> alert=True
   [  ok ] frac_PBS                   KS=0.043 p=3.91e-01 PSI=0.018
   [  ok ] primary_polymer            PSI=0.007
 ```
+
+## Retrain on drift (detect -> retrain -> validate -> register)
+An alert is only worth raising if it drives an action. The full loop runs against the supplier
+shift: a champion trained on **pre-shift (S1)** data is scored on a held-out **post-shift (S2)**
+test; the monitor flags `['melt_flow_index_g10min']`; a model **retrained on S1 + new S2**
+is validated on the same post-shift test. The champion has degraded most on
+**melt** (R² 0.732) — a feature the monitor
+flagged — and retraining recovers it (R² 0.792); mean R²
+0.871 -> 0.886. `register_if_better` then promotes
+the retrained model only if it wins ([`registry.py`](../src/biopoly/models/registry.py),
+[`scripts/retrain.py`](../scripts/retrain.py)).
+
+![retrain on drift](figures/retrain.png)

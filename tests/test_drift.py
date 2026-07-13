@@ -31,3 +31,15 @@ def test_no_alert_on_same_distribution(dataset):
     a, b = ref.iloc[:half], ref.iloc[half:]
     report = detect_drift(a, b, ["process_temp_c", "process_time_min"])
     assert report["alert"] is False
+
+
+def test_retrain_recovers_on_post_shift(dataset):
+    # detect -> retrain -> validate: a pre-shift champion degrades on the post-shift
+    # regime and retraining on the new data recovers it.
+    from biopoly.monitoring.retrain import retrain_cycle
+
+    cyc = retrain_cycle(dataset, seed=0)
+    assert cyc["drift"]["alert"] is True  # the supplier shift is detected
+    assert cyc["retrained_mean_r2"] > cyc["champion_mean_r2"]  # retraining helps overall
+    mfi = "melt_flow_index_g10min"
+    assert cyc["retrained"][mfi]["r2"] >= cyc["champion"][mfi]["r2"]  # recovers the shifted output
