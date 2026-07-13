@@ -17,6 +17,7 @@ from biopoly import TARGETS
 from biopoly.config import Settings, settings
 from biopoly.data.chemistry import ADDITIVES, POLYMERS, Formulation, forward_true
 from biopoly.data.schema import TENSILE_PROTOCOLS
+from biopoly.timeseries import seasonal_feedstock_quality
 
 # present-probability and max fraction per additive
 _ADDITIVE_SPEC = {
@@ -95,13 +96,18 @@ def build_dataset(cfg: Settings | None = None) -> pd.DataFrame:
             size=cfg.n_samples,
         )
     )
+    # Seasonal bio-feedstock quality per sample date — a real temporal covariate the
+    # forward model can use, and the baseline the mid-2025 shift is a regime change on.
+    # Drawn from a dedicated RNG so it does not perturb the formulation-sampling stream.
+    feedstock_quality = seasonal_feedstock_quality(dates, rng=np.random.default_rng(cfg.seed + 1))
 
     rows: list[dict] = []
     for i in range(cfg.n_samples):
         form = _sample_formulation(rng)
         date = dates[i]
+        quality = float(feedstock_quality[i])
         after_shift = np.datetime64(date) >= _SHIFT_DATE and form.polymer_frac.get("PBS", 0) > 0
-        true = forward_true(form, after_supplier_shift=bool(after_shift))
+        true = forward_true(form, after_supplier_shift=bool(after_shift), feedstock_quality=quality)
         protocol = str(rng.choice(TENSILE_PROTOCOLS))
         meas = _measure(true, protocol, rng)
 
@@ -110,6 +116,7 @@ def build_dataset(cfg: Settings | None = None) -> pd.DataFrame:
         row.update(meas)
         row["primary_polymer"] = primary
         row["tensile_protocol"] = protocol
+        row["feedstock_quality"] = quality
         row["sample_id"] = f"NN-{i:05d}"
         row["date"] = date
         row["supplier_batch"] = "S2" if np.datetime64(date) >= _SHIFT_DATE else "S1"

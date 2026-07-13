@@ -14,7 +14,9 @@ from biopoly.data.chemistry import ADDITIVES, POLYMERS
 POLYMER_FRAC_COLS = [f"frac_{p}" for p in POLYMERS]
 ADDITIVE_COLS = [f"add_{a}" for a in ADDITIVES]
 PROCESS_COLS = ["process_temp_c", "process_time_min"]
-NUMERIC_FEATURES = POLYMER_FRAC_COLS + ADDITIVE_COLS + PROCESS_COLS
+# Temporal context covariates (seasonal feedstock purity; see biopoly.timeseries).
+CONTEXT_COLS = ["feedstock_quality"]
+NUMERIC_FEATURES = POLYMER_FRAC_COLS + ADDITIVE_COLS + PROCESS_COLS + CONTEXT_COLS
 CATEGORICAL_FEATURES = ["primary_polymer", "tensile_protocol"]
 FEATURE_COLS = NUMERIC_FEATURES + CATEGORICAL_FEATURES
 
@@ -24,6 +26,7 @@ __all__ = [
     "POLYMER_FRAC_COLS",
     "ADDITIVE_COLS",
     "PROCESS_COLS",
+    "CONTEXT_COLS",
     "NUMERIC_FEATURES",
     "CATEGORICAL_FEATURES",
     "FEATURE_COLS",
@@ -53,6 +56,12 @@ class FormulationInput(BaseModel):
     process_temp_c: float = Field(..., ge=80.0, le=260.0)
     process_time_min: float = Field(..., ge=1.0, le=120.0)
     tensile_protocol: str = Field("ISO527")
+    feedstock_quality: float = Field(
+        1.0,
+        ge=0.5,
+        le=1.5,
+        description="Seasonal feedstock-purity multiplier (~1.0); 1.0 = typical batch",
+    )
 
     @model_validator(mode="after")
     def _check_keys(self) -> FormulationInput:

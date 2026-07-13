@@ -43,3 +43,19 @@ def test_supplier_shift_raises_pbs_mfi():
     after = forward_true(form, after_supplier_shift=True)
     assert after["melt_flow_index_g10min"] > before["melt_flow_index_g10min"]
     assert after["tensile_strength_mpa"] < before["tensile_strength_mpa"]
+
+
+def test_feedstock_quality_raises_tensile():
+    # purer feedstock -> stronger polymer (monotone, learnable covariate)
+    form = Formulation({"PLA": 1.0}, {}, 200.0, 20.0)
+    low = forward_true(form, feedstock_quality=0.9)
+    high = forward_true(form, feedstock_quality=1.1)
+    assert high["tensile_strength_mpa"] > low["tensile_strength_mpa"]
+
+
+def test_feedstock_quality_column_wired(small_df):
+    # the seasonal signal is present as a real, varying covariate in the dataset
+    q = small_df["feedstock_quality"]
+    assert q.notna().all()
+    assert ((q >= 0.5) & (q <= 1.5)).all()
+    assert q.std() > 0.0

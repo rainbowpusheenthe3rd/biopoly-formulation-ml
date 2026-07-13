@@ -115,11 +115,20 @@ def _mean_immiscibility(w: dict[str, float]) -> float:
     return num / den if den else 0.0
 
 
-def forward_true(form: Formulation, *, after_supplier_shift: bool = False) -> dict[str, float]:
+def forward_true(
+    form: Formulation, *, after_supplier_shift: bool = False, feedstock_quality: float = 1.0
+) -> dict[str, float]:
     """Deterministic 'true' property means for a formulation (pre-measurement-noise).
 
     This is the physical ground truth the ML forward model must learn to
     approximate from data alone.
+
+    Args:
+        form: The formulation to evaluate.
+        after_supplier_shift: Apply the mid-2025 PBS supplier-purity regime change.
+        feedstock_quality: Seasonal bio-feedstock purity multiplier (~1.0), from
+            :func:`biopoly.timeseries.seasonal_feedstock_quality`. Purer feedstock
+            yields a stronger, slightly clearer polymer.
     """
     w = _norm_polymer(form.polymer_frac)
     add = form.additive_frac
@@ -129,9 +138,11 @@ def forward_true(form: Formulation, *, after_supplier_shift: bool = False) -> di
     p_fibre = add.get("fibre", 0.0)
     p_cext = add.get("chain_extender", 0.0)
 
-    # Supplier-purity shift (mid-2025): PBS batches degrade -> weaker, runnier.
-    pbs_tensile_mult = 0.80 if after_supplier_shift else 1.0
-    pbs_mfi_mult = 1.30 if after_supplier_shift else 1.0
+    # Supplier-purity shift (mid-2025): PBS batches degrade -> weaker, runnier. Sized
+    # so the regime change is a clear drift signal that stands out above the seasonal
+    # feedstock-quality baseline, not a borderline one.
+    pbs_tensile_mult = 0.70 if after_supplier_shift else 1.0
+    pbs_mfi_mult = 1.55 if after_supplier_shift else 1.0
 
     # --- base weighted anchors ---
     tensile = _weighted_anchor(w, "tensile")
@@ -174,6 +185,13 @@ def forward_true(form: Formulation, *, after_supplier_shift: bool = False) -> di
     clarity *= 1.0 - 3.0 * p_fibre  # fillers scatter light
     clarity *= 1.0 - 8.0 * p_nucl  # crystallinity -> haze
     clarity *= 1.0 + 2.0 * p_comp  # compatibiliser -> finer morphology -> clearer
+
+    # --- feedstock quality (seasonal bio-feedstock purity; see biopoly.timeseries) ---
+    # Purer feedstock -> higher molecular weight -> a stronger, slightly clearer
+    # polymer. Gentle and monotone, so it is real structure the forward model can
+    # learn from the feedstock_quality covariate rather than noise.
+    tensile *= feedstock_quality
+    clarity *= 1.0 + 0.3 * (feedstock_quality - 1.0)
 
     # --- clamp to physical ranges ---
     return {

@@ -18,10 +18,14 @@ from biopoly.data.schema import FEATURE_COLS
 from biopoly.models.metrics import TOLERANCE
 
 
-def to_features(form: Formulation, protocol: str = "ISO527") -> pd.DataFrame:
+def to_features(
+    form: Formulation, protocol: str = "ISO527", *, feedstock_quality: float = 1.0
+) -> pd.DataFrame:
     row = form.as_row()
     row["primary_polymer"] = max(form.polymer_frac, key=form.polymer_frac.get)
     row["tensile_protocol"] = protocol
+    # Design/predict at nominal feedstock quality unless a batch value is supplied.
+    row["feedstock_quality"] = feedstock_quality
     x = pd.DataFrame([row])[FEATURE_COLS]
     x["primary_polymer"] = x["primary_polymer"].astype("category")
     x["tensile_protocol"] = x["tensile_protocol"].astype("category")
@@ -48,8 +52,10 @@ def score_prediction(
     return dist / n + uncertainty_lambda * width / n
 
 
-def predict_one(model, form: Formulation, protocol: str = "ISO527") -> dict[str, dict[str, float]]:
-    raw = model.predict(to_features(form, protocol))
+def predict_one(
+    model, form: Formulation, protocol: str = "ISO527", *, feedstock_quality: float = 1.0
+) -> dict[str, dict[str, float]]:
+    raw = model.predict(to_features(form, protocol, feedstock_quality=feedstock_quality))
     return {t: {k: float(v[0]) for k, v in raw[t].items()} for t in TARGETS}
 
 

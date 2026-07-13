@@ -119,6 +119,52 @@ def _fig_signal_processing() -> str:
     return path.name
 
 
+def _fig_seasonality(df: pd.DataFrame) -> tuple[str, float, float, float]:
+    """STL decomposition of the monthly feedstock-quality signal + a seasonal-naive backtest.
+
+    Returns the figure name plus (seasonal_strength, seasonal_naive_mae, monthly_std) so the
+    forecast baseline is reported honestly next to the decomposition.
+    """
+    from biopoly.timeseries import monthly_mean, seasonal_naive_forecast, stl_decompose
+
+    s = monthly_mean(df, "feedstock_quality")
+    dec = stl_decompose(s.to_numpy(), period=12)
+
+    # Honest baseline: hold out the last 12 months, forecast them by repeating the
+    # prior season, and measure the error any ML forecaster would have to beat.
+    naive_mae = float("nan")
+    if len(s) >= 24:
+        train, actual = s.to_numpy()[:-12], s.to_numpy()[-12:]
+        fc = seasonal_naive_forecast(train, period=12, horizon=12)
+        naive_mae = float(np.mean(np.abs(fc - actual)))
+
+    idx = s.index
+    fig, axes = plt.subplots(4, 1, figsize=(11, 8), sharex=True)
+    for ax, (name, series, colour) in zip(
+        axes,
+        [
+            ("observed", dec.observed, "#4C72B0"),
+            ("trend", dec.trend, "#8172B3"),
+            ("seasonal", dec.seasonal, "#55A868"),
+            ("resid", dec.resid, "#C44E52"),
+        ],
+        strict=True,
+    ):
+        ax.plot(idx, series, color=colour, lw=1.3)
+        ax.set_ylabel(name, fontsize=9)
+        ax.tick_params(labelsize=7)
+    axes[0].set_title(
+        f"Feedstock-quality seasonality — STL decomposition "
+        f"(seasonal strength {dec.seasonal_strength:.2f})",
+        fontsize=10,
+    )
+    fig.tight_layout()
+    path = FIG / "seasonality.png"
+    fig.savefig(path, dpi=110, bbox_inches="tight")
+    plt.close(fig)
+    return path.name, dec.seasonal_strength, naive_mae, float(s.std())
+
+
 def _metrics_table_md(metrics) -> str:
     rows = ["| target | n | MAE | RMSE | R² | coverage | within-tol |",
             "|---|---|---|---|---|---|---|"]
@@ -144,6 +190,7 @@ def main() -> None:
     f_pva = _fig_pred_vs_actual(test_df, preds, metrics)
     f_imp = _fig_feature_importance(model)
     f_sig = _fig_signal_processing()
+    f_seas, seas_strength, naive_mae, seas_std = _fig_seasonality(df)
 
     # inverse design
     achievable = {
@@ -188,6 +235,18 @@ features a scientist actually reads off the instrument, rather than hand-waving 
 
 ![signal processing](figures/{f_sig})
 
+## Seasonality (feedstock quality over time)
+Bio-feedstock purity follows an annual cycle (harvest -> storage -> depletion) on a slow
+trend. It is wired into the generator
+([`timeseries.py`](../src/biopoly/timeseries.py)) as a `feedstock_quality` covariate that
+shifts tensile strength, so the model sees real temporal structure — and the mid-2025 supplier
+shift reads as a **regime change on top** of this baseline. STL cleanly separates trend /
+seasonal / residual (seasonal strength **{seas_strength:.2f}**). The honest forecast baseline
+any ML model must beat is **seasonal-naive** ("next September looks like last September"): MAE
+**{naive_mae:.4f}** over a 12-month backtest, against a monthly signal SD of **{seas_std:.4f}**.
+
+![feedstock-quality seasonality](figures/{f_seas})
+
 ## Inverse design (target spec -> formulation)
 **Achievable target** `{achievable}`
 - predicted: `{inv["predicted"]}`
@@ -204,7 +263,7 @@ returns the best compromise:
 ```
 """
     (DOCS / "RESULTS.md").write_text(md, encoding="utf-8")
-    print("wrote docs/RESULTS.md and 4 figures under docs/figures/")
+    print("wrote docs/RESULTS.md and 5 figures under docs/figures/")
     print(f"mean R2 = {summary_row(metrics):.3f}; drift alert = {drift['alert']}")
 
 

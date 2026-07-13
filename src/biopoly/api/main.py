@@ -68,7 +68,9 @@ def predict(body: FormulationInput) -> PredictResponse:
         warnings.append(f"fractions summed to {total:.3f}; renormalised to 1.0")
 
     form = Formulation(frac, additives, body.process_temp_c, body.process_time_min)
-    pred = predict_one(model, form, protocol=body.tensile_protocol)
+    pred = predict_one(
+        model, form, protocol=body.tensile_protocol, feedstock_quality=body.feedstock_quality
+    )
     return PredictResponse(
         predictions={
             t: PropertyPrediction(value=pred[t]["value"], p10=pred[t]["p10"], p90=pred[t]["p90"])
