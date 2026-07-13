@@ -3,6 +3,13 @@
 Maps conceptually onto MLflow Model Registry / SageMaker Model Registry (register ->
 promote -> roll back) but is filesystem-backed so it runs anywhere with no server.
 Each version stores the serialised model, its metrics and the git commit that made it.
+
+Promotion is **calibration-aware**: a candidate must beat the champion on a combined
+score that rewards accuracy (mean R²) and penalises interval mis-coverage. This
+matters because the p10-p90 bands are conformally calibrated (CQR) — a model that is
+marginally more accurate but whose intervals stop covering ~80% of the truth should
+not silently become champion, and a purely calibration-improving model should be able
+to win even at equal R².
 """
 
 from __future__ import annotations
@@ -15,6 +22,25 @@ from pathlib import Path
 
 from biopoly.config import settings
 from biopoly.models.forward import ForwardModel
+
+# p10-p90 nominal coverage, and how much a unit of coverage error costs vs a unit of R².
+_COVERAGE_TARGET = 0.80
+_COVERAGE_WEIGHT = 0.5
+
+
+def _coverage_error(metrics: dict) -> float:
+    """Mean absolute gap between interval coverage and its ~0.80 nominal, over targets."""
+    errs = [
+        abs(m["interval_coverage"] - _COVERAGE_TARGET)
+        for m in metrics.values()
+        if isinstance(m, dict) and "interval_coverage" in m
+    ]
+    return sum(errs) / len(errs) if errs else 0.0
+
+
+def promotion_score(metrics: dict, mean_r2: float) -> float:
+    """Accuracy rewarded, mis-coverage penalised: ``mean_r2 - w * coverage_error``."""
+    return mean_r2 - _COVERAGE_WEIGHT * _coverage_error(metrics)
 
 
 def _git_commit() -> str:
@@ -50,6 +76,8 @@ class ModelRegistry:
             "created_utc": datetime.now(UTC).isoformat(),
             "git_commit": _git_commit(),
             "mean_r2": mean_r2,
+            "coverage_error": _coverage_error(metrics),
+            "promotion_score": promotion_score(metrics, mean_r2),
             "metrics": metrics,
         }
         (vdir / "metadata.json").write_text(json.dumps(meta, indent=2))
@@ -87,11 +115,19 @@ class ModelRegistry:
     def register_if_better(
         self, model_dir: Path, metrics: dict, mean_r2: float
     ) -> tuple[int, bool]:
-        """Register a candidate; promote it only if it beats the current champion."""
+        """Register a candidate; promote it only if it beats the champion on the
+        calibration-aware :func:`promotion_score` (accuracy minus a coverage-error
+        penalty), not on mean R² alone."""
         version = self.register(model_dir, metrics, mean_r2)
         champ = self.champion()
-        promoted = False
-        if champ is None or mean_r2 > self.metadata(champ)["mean_r2"]:
+        if champ is None:
             self.promote(version)
-            promoted = True
+            return version, True
+        champ_meta = self.metadata(champ)
+        champ_score = champ_meta.get("promotion_score")
+        if champ_score is None:  # older metadata without the field
+            champ_score = promotion_score(champ_meta.get("metrics", {}), champ_meta["mean_r2"])
+        promoted = promotion_score(metrics, mean_r2) > champ_score
+        if promoted:
+            self.promote(version)
         return version, promoted

@@ -9,9 +9,9 @@ Where the project is and where it's going. This is a **synthetic-data demo** (se
   coverage guarantee ([`models/conformal.py`](src/biopoly/models/conformal.py)).
 - **Inverse design** — search on the forward model (baseline sampling → warm-started Bayesian
   optimisation).
-- **MLOps** — experiment tracking behind a protocol, a filesystem model registry
-  (register-if-better + rollback), KS/PSI **drift monitoring**, a retrain trigger, Docker, typed
-  FastAPI.
+- **MLOps** — experiment tracking behind a protocol, a filesystem model registry with a
+  **calibration-aware** register-if-better gate (accuracy minus an interval-coverage penalty) + rollback,
+  KS/PSI **drift monitoring**, a retrain trigger, Docker, typed FastAPI.
 - **Signal processing** — synthetic DSC thermograms → `scipy.signal` DSP → melt-peak feature
   extraction ([`signals.py`](src/biopoly/signals.py)).
 - **Seasonality → model** — the seasonal feedstock signal ([`timeseries.py`](src/biopoly/timeseries.py))
@@ -47,8 +47,6 @@ Where the project is and where it's going. This is a **synthetic-data demo** (se
 ### Productionisation
 - **Multi-tenant frontend.** A minimal Streamlit login demo against the API (design in
   [`docs/MULTI_TENANCY.md`](docs/MULTI_TENANCY.md)).
-- **Promotion gate.** Fold interval-coverage error into `register_if_better` — today it promotes on
-  mean R² only, so a calibration-only improvement won't auto-promote.
 
 ### Engineering hygiene
 - Google-style docstrings (ruff `D`), `mypy`, a coverage gate (`pytest-cov`), and expanded CI stages
