@@ -23,6 +23,10 @@ Where the project is and where it's going. This is a **synthetic-data demo** (se
   experiment" search, reusing the inverse loop ([`active_learning.py`](src/biopoly/active_learning.py)).
   Benchmarked honestly: on this synthetic problem it does *not* beat random; the machinery is in place
   for domains with genuine label scarcity / shift.
+- **Retrain on drift — end-to-end** ([`monitoring/retrain.py`](src/biopoly/monitoring/retrain.py)) — a
+  pre-shift champion degrades on the post-shift regime (melt-flow index R² 0.73) and retraining on the
+  new data recovers it (0.79), validated on held-out post-shift data; the drift alert drives the action
+  and `register_if_better` promotes only on a win.
 - **Testing** — a spiral-layered suite reporting a **complexity frontier**
   ([`tests/conftest.py`](tests/conftest.py)).
 
@@ -35,8 +39,6 @@ Where the project is and where it's going. This is a **synthetic-data demo** (se
   real *formulations* with processing metadata that can actually augment training.
 
 ### Modelling depth
-- **Drift → retrain, end-to-end.** Exercise the full detect → retrain → validate → register loop
-  against the built-in mid-2025 supplier-purity shift.
 - **Inverse design — MCTS.** Add a Monte-Carlo tree-search escalation alongside Bayesian
   optimisation for harder, multi-modal target specs.
 - **Learned polymer representation.** Compare learned embeddings against the current descriptor
