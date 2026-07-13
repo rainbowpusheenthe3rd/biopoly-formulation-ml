@@ -55,6 +55,27 @@ returns the best compromise:
 - predicted: `{'tensile_strength_mpa': 31.43, 'melt_flow_index_g10min': 9.0, 'biodegradation_60d_pct': 86.08, 'water_absorption_pct': 7.06, 'optical_clarity_pct': 2.67}`
 - formulation: `{'polymers': {'PHA': 0.707}, 'additives': {'fibre': 0.293}, 'process_temp_c': 177.5, 'process_time_min': 12.9}`
 
+## Active learning (choosing the most informative next experiment)
+Data is the binding constraint, so the next experiment should be the most *informative* one — chosen
+by **expected information gain**, estimated as disagreement across a bootstrap committee of forward
+models (*epistemic* uncertainty, the reducible kind — not the aleatoric measurement noise the
+quantile band already captures). This reuses the inverse-design search with its objective flipped
+from "hit a target" to "learn the most"
+([`active_learning.py`](../src/biopoly/active_learning.py)); its concrete output is a recommended
+next formulation to run.
+
+**Does it beat random?** Benchmarked honestly — seeding from pre-shift (S1) data and scoring on the
+post-shift (S2) regime. On this synthetic problem (a strong GBDT, a pool from the same distribution
+as the test) committee-disagreement selection did **not** outperform random: mean R²
+**0.642** vs **0.671** on the post-shift test (3 seeds). That is the
+honest result — uncertainty sampling's advantage needs genuine label sparsity or a sharper epistemic
+signal than a bootstrap committee provides here. The acquisition machinery is in place for the
+domains (costly labels, real distribution shift) where it pays.
+
+![active learning vs random](figures/active_learning.png)
+
+**Proposed next experiment** (highest information gain): `{'polymers': {'PLA': 0.827}, 'additives': {'plasticizer': 0.161, 'chain_extender': 0.012}, 'process_temp_c': 207.4, 'process_time_min': 15.3}`
+
 ## Drift monitoring (S1 reference vs S2 incoming)
 ```
 drift: 1/4 columns drifted -> alert=True

@@ -165,6 +165,40 @@ def _fig_seasonality(df: pd.DataFrame) -> tuple[str, float, float, float]:
     return path.name, dec.seasonal_strength, naive_mae, float(s.std())
 
 
+def _fig_active_learning(df: pd.DataFrame) -> tuple[str, list, np.ndarray, np.ndarray, dict]:
+    """Active-learning-under-shift curves (active vs random, seed-averaged) + next experiment."""
+    from biopoly.active_learning import Committee, active_learning_shift_curve, propose_experiment
+
+    params = {"n_estimators": 100, "learning_rate": 0.08}
+    runs = [
+        active_learning_shift_curve(
+            df, seed_size=40, batch=25, rounds=5, k=4, params=params, seed=s
+        )
+        for s in (0, 1, 2)
+    ]
+    labels = runs[0]["labels"]
+    active = np.mean([r["active"] for r in runs], axis=0)
+    random_sel = np.mean([r["random"] for r in runs], axis=0)
+
+    train, _ = split(df, test_size=0.2, mode="random", seed=0)
+    committee = Committee.fit(train, k=5, seed=1)
+    proposed = propose_experiment(committee, n_candidates=2500, top_k=1, seed=7)[0]
+
+    fig, ax = plt.subplots(figsize=(7, 4.2))
+    ax.plot(labels, active, "o-", color="#4C72B0", label="active (max disagreement)")
+    ax.plot(labels, random_sel, "s--", color="#C44E52", label="random")
+    ax.set_xlabel("labelled experiments (seed = pre-shift S1)")
+    ax.set_ylabel("mean R² on post-shift (S2) test")
+    ax.set_title("Committee-disagreement active learning vs random (3 seeds)", fontsize=10)
+    ax.legend(fontsize=8)
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+    path = FIG / "active_learning.png"
+    fig.savefig(path, dpi=110, bbox_inches="tight")
+    plt.close(fig)
+    return path.name, labels, active, random_sel, proposed
+
+
 def _metrics_table_md(metrics) -> str:
     rows = ["| target | n | MAE | RMSE | R² | coverage | within-tol |",
             "|---|---|---|---|---|---|---|"]
@@ -191,6 +225,7 @@ def main() -> None:
     f_imp = _fig_feature_importance(model)
     f_sig = _fig_signal_processing()
     f_seas, seas_strength, naive_mae, seas_std = _fig_seasonality(df)
+    f_al, al_labels, al_active, al_random, al_proposed = _fig_active_learning(df)
 
     # inverse design
     achievable = {
@@ -257,13 +292,34 @@ returns the best compromise:
 - predicted: `{inv_conf["predicted"]}`
 - formulation: `{inv_conf["formulation"]}`
 
+## Active learning (choosing the most informative next experiment)
+Data is the binding constraint, so the next experiment should be the most *informative* one — chosen
+by **expected information gain**, estimated as disagreement across a bootstrap committee of forward
+models (*epistemic* uncertainty, the reducible kind — not the aleatoric measurement noise the
+quantile band already captures). This reuses the inverse-design search with its objective flipped
+from "hit a target" to "learn the most"
+([`active_learning.py`](../src/biopoly/active_learning.py)); its concrete output is a recommended
+next formulation to run.
+
+**Does it beat random?** Benchmarked honestly — seeding from pre-shift (S1) data and scoring on the
+post-shift (S2) regime. On this synthetic problem (a strong GBDT, a pool from the same distribution
+as the test) committee-disagreement selection did **not** outperform random: mean R²
+**{al_active[-1]:.3f}** vs **{al_random[-1]:.3f}** on the post-shift test (3 seeds). That is the
+honest result — uncertainty sampling's advantage needs genuine label sparsity or a sharper epistemic
+signal than a bootstrap committee provides here. The acquisition machinery is in place for the
+domains (costly labels, real distribution shift) where it pays.
+
+![active learning vs random](figures/{f_al})
+
+**Proposed next experiment** (highest information gain): `{al_proposed["formulation"]}`
+
 ## Drift monitoring (S1 reference vs S2 incoming)
 ```
 {format_report(drift)}
 ```
 """
     (DOCS / "RESULTS.md").write_text(md, encoding="utf-8")
-    print("wrote docs/RESULTS.md and 5 figures under docs/figures/")
+    print("wrote docs/RESULTS.md and 6 figures under docs/figures/")
     print(f"mean R2 = {summary_row(metrics):.3f}; drift alert = {drift['alert']}")
 
 

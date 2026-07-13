@@ -73,8 +73,9 @@ def vector_to_formulation(
 
 def describe(form: Formulation) -> dict:
     """Compact, human-readable formulation (drops near-zero components)."""
-    polymers = {p: round(f, 3) for p, f in form.polymer_frac.items() if f > 0.005}
-    additives = {a: round(f, 3) for a, f in form.additive_frac.items() if f > 0.005}
+    # Cast keys to plain str: sampled formulations can carry numpy string keys.
+    polymers = {str(p): round(f, 3) for p, f in form.polymer_frac.items() if f > 0.005}
+    additives = {str(a): round(f, 3) for a, f in form.additive_frac.items() if f > 0.005}
     return {
         "polymers": polymers,
         "additives": additives,
