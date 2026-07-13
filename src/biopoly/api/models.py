@@ -10,6 +10,8 @@ from biopoly import TARGETS
 
 
 class DesignRequest(BaseModel):
+    """A /design request: a target property spec plus search settings."""
+
     target: dict[str, float] = Field(
         ..., description=f"Desired property values; keys a subset of {TARGETS}"
     )
@@ -30,12 +32,16 @@ class DesignRequest(BaseModel):
 
 
 class Candidate(BaseModel):
+    """One ranked inverse-design result: score, formulation and predicted properties."""
+
     score: float
     formulation: dict
     predicted: dict[str, float]
 
 
 class DesignResponse(BaseModel):
+    """The /design response: the method used, echoed target, and ranked candidates."""
+
     method: str
     target: dict[str, float]
     candidates: list[Candidate]

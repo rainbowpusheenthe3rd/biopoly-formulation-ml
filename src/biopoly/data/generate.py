@@ -135,8 +135,8 @@ def build_dataset(
         protocol = str(rng.choice(TENSILE_PROTOCOLS))
         meas = _measure(true, protocol, rng)
 
-        primary = max(form.polymer_frac, key=form.polymer_frac.get)
-        row = form.as_row()
+        primary = max(form.polymer_frac, key=lambda p: form.polymer_frac[p])
+        row: dict[str, object] = dict(form.as_row())
         row.update(meas)
         row["primary_polymer"] = primary
         row["tensile_protocol"] = protocol
@@ -167,6 +167,7 @@ def build_dataset(
 
 
 def summarise(df: pd.DataFrame) -> str:
+    """One-line-per-target summary of row count, missingness and value ranges."""
     lines = [f"rows={len(df)}  cols={df.shape[1]}", "missing %:"]
     for t in TARGETS:
         lines.append(
@@ -177,6 +178,7 @@ def summarise(df: pd.DataFrame) -> str:
 
 
 def main() -> None:
+    """CLI entry point: build the dataset and write it to ``settings.data_path``."""
     settings.ensure_dirs()
     df = build_dataset(settings)
     df.to_parquet(settings.data_path, index=False)

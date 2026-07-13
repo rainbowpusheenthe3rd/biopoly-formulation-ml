@@ -75,6 +75,7 @@ def detect_drift(
 
 
 def format_report(report: dict) -> str:
+    """Render a drift report as human-readable per-column lines."""
     lines = [
         f"drift: {report['n_drifted']}/{report['n_columns']} columns drifted "
         f"-> alert={report['alert']}"

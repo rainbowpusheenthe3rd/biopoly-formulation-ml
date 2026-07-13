@@ -52,8 +52,13 @@ def test_shift_curve_adapts_to_new_regime():
     # seed pre-shift (S1), test post-shift (S2): more labels -> better on the new regime
     df = build_dataset(Settings(n_samples=700, seed=5))
     curves = active_learning_shift_curve(
-        df, seed_size=30, batch=20, rounds=3, k=3,
-        params={"n_estimators": 60, "learning_rate": 0.1}, seed=0,
+        df,
+        seed_size=30,
+        batch=20,
+        rounds=3,
+        k=3,
+        params={"n_estimators": 60, "learning_rate": 0.1},
+        seed=0,
     )
     assert len(curves["active"]) == len(curves["labels"]) == 4
     assert curves["labels"][-1] > curves["labels"][0]

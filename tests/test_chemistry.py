@@ -62,7 +62,7 @@ def test_blend_optimum_temp_lies_between_components():
 def test_compatibilizer_improves_immiscible_blend_clarity():
     blend = {"PLA": 0.5, "TPS": 0.5}  # strongly immiscible pair
     without = forward_true(Formulation(blend, {}, 180.0, 20.0))["optical_clarity_pct"]
-    withc = forward_true(
-        Formulation(blend, {"compatibilizer": 0.05}, 180.0, 20.0)
-    )["optical_clarity_pct"]
+    withc = forward_true(Formulation(blend, {"compatibilizer": 0.05}, 180.0, 20.0))[
+        "optical_clarity_pct"
+    ]
     assert withc >= without

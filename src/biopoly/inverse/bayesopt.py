@@ -66,7 +66,7 @@ def design(
         additive_w = {a: trial.suggest_float(f"add_{a}", 0.0, ADDITIVE_CAPS[a]) for a in ADDITIVES}
         temp = trial.suggest_float("process_temp_c", 100.0, 240.0)
         time_min = trial.suggest_float("process_time_min", 4.0, 90.0)
-        form = vector_to_formulation(polymer_w, additive_w, temp, time_min)
+        form = vector_to_formulation(np.asarray(polymer_w), additive_w, temp, time_min)
         pred = predict_one(model, form)
         return score_prediction(pred, target, weights=weights)
 
@@ -77,18 +77,22 @@ def design(
             study.enqueue_trial(p)
     study.optimize(objective, n_trials=n_trials, show_progress_bar=False)
 
-    trials = sorted((t for t in study.trials if t.value is not None), key=lambda t: t.value)[:top_k]
+    finished = [t for t in study.trials if t.value is not None]
+    trials = sorted(finished, key=lambda t: float(t.value))[:top_k]  # type: ignore[arg-type]
     results = []
     for t in trials:
         polymer_w = [t.params[f"w_{p}"] for p in POLYMERS]
         additive_w = {a: t.params[f"add_{a}"] for a in ADDITIVES}
         form = vector_to_formulation(
-            polymer_w, additive_w, t.params["process_temp_c"], t.params["process_time_min"]
+            np.asarray(polymer_w),
+            additive_w,
+            t.params["process_temp_c"],
+            t.params["process_time_min"],
         )
         pred = predict_one(model, form)
         results.append(
             {
-                "score": round(float(t.value), 4),
+                "score": round(float(t.value), 4),  # type: ignore[arg-type]
                 "formulation": describe(form),
                 "predicted": {k: round(v["value"], 2) for k, v in pred.items()},
             }

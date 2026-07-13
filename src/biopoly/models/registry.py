@@ -53,6 +53,8 @@ def _git_commit() -> str:
 
 
 class ModelRegistry:
+    """Filesystem-backed model registry: versioned models + a champion pointer."""
+
     def __init__(self, root: Path | None = None) -> None:
         self.root = Path(root or (settings.artifact_dir / "registry"))
         self.root.mkdir(parents=True, exist_ok=True)
@@ -115,9 +117,11 @@ class ModelRegistry:
     def register_if_better(
         self, model_dir: Path, metrics: dict, mean_r2: float
     ) -> tuple[int, bool]:
-        """Register a candidate; promote it only if it beats the champion on the
-        calibration-aware :func:`promotion_score` (accuracy minus a coverage-error
-        penalty), not on mean R² alone."""
+        """Register a candidate and promote it only if it wins.
+
+        Promotion uses the calibration-aware :func:`promotion_score` (accuracy minus a
+        coverage-error penalty), not mean R² alone.
+        """
         version = self.register(model_dir, metrics, mean_r2)
         champ = self.champion()
         if champ is None:

@@ -19,10 +19,14 @@ jobs:
           version: "0.11.8"
       - name: Sync (locked)
         run: uv sync --frozen
+      - name: Format check
+        run: uv run ruff format --check .
       - name: Lint
         run: uv run ruff check .
-      - name: Spiral test suite
-        run: uv run pytest
+      - name: Type check
+        run: uv run mypy
+      - name: Spiral test suite (with coverage)
+        run: uv run pytest --cov=biopoly --cov-report=term-missing --cov-fail-under=75
       - name: Spiral complexity frontier
         if: always()  # surface the frontier even when a layer fails — that's the point
         run: |

@@ -28,6 +28,7 @@ TOLERANCE = {
 def evaluate(
     df: pd.DataFrame, preds: dict[str, dict[str, np.ndarray]]
 ) -> dict[str, dict[str, float]]:
+    """Per-target metrics: MAE/RMSE/R², interval coverage and within-tolerance rate."""
     out: dict[str, dict[str, float]] = {}
     for target in TARGETS:
         y = df[target].to_numpy(dtype=float)
@@ -57,6 +58,7 @@ def summary_row(metrics: dict[str, dict[str, float]]) -> float:
 
 
 def format_table(metrics: dict[str, dict[str, float]]) -> str:
+    """Render the metrics dict as a fixed-width, human-readable text table."""
     head = (
         f"{'target':26s} {'n':>5s} {'MAE':>7s} {'RMSE':>7s} {'R2':>6s} {'cover':>6s} {'<=tol':>6s}"
     )

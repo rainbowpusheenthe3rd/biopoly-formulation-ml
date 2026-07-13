@@ -14,6 +14,8 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
+    """Runtime settings (paths, seeds, dataset size, tracking), overridable via env."""
+
     model_config = SettingsConfigDict(env_prefix="BIOPOLY_", env_file=".env", extra="ignore")
 
     # Data

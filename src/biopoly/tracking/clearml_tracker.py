@@ -16,6 +16,8 @@ from biopoly.config import settings
 
 
 class ClearMLTracker:
+    """Experiment tracker backed by ClearML (needs the optional ``clearml`` extra)."""
+
     def __init__(self, run_name: str) -> None:
         self.run_name = run_name
 

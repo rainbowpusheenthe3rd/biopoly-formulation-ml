@@ -28,6 +28,7 @@ STATE: dict = {"model": None, "version": None}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Load the champion model once at startup from the registry."""
     reg = ModelRegistry()
     if reg.champion() is not None:
         STATE["model"] = reg.load_champion()
@@ -48,6 +49,7 @@ def _require_model():
 
 @app.get("/health")
 def health() -> dict:
+    """Liveness probe: status, package version and the served model version."""
     return {
         "status": "ok",
         "biopoly_version": __version__,
@@ -58,6 +60,7 @@ def health() -> dict:
 
 @app.post("/predict", response_model=PredictResponse)
 def predict(body: FormulationInput) -> PredictResponse:
+    """Predict the five properties (with p10/p90 bands) for a formulation."""
     model = _require_model()
     warnings: list[str] = []
     total = sum(body.frac.values()) + sum(body.additives.values())
@@ -82,6 +85,7 @@ def predict(body: FormulationInput) -> PredictResponse:
 
 @app.post("/design", response_model=DesignResponse)
 def design(body: DesignRequest) -> DesignResponse:
+    """Return ranked candidate formulations for a target property spec."""
     model = _require_model()
     try:
         target = body.validated_target()

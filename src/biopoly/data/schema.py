@@ -99,5 +99,7 @@ class PropertyPrediction(BaseModel):
 
 
 class PredictResponse(BaseModel):
+    """The /predict response: per-property predictions plus any warnings."""
+
     predictions: dict[str, PropertyPrediction]
     warnings: list[str] = Field(default_factory=list)

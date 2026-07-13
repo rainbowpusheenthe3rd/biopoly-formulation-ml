@@ -15,6 +15,8 @@ from biopoly.config import settings
 
 
 class MLflowTracker:
+    """Experiment tracker backed by MLflow (local SQLite store by default)."""
+
     def __init__(self, run_name: str) -> None:
         self.run_name = run_name
         mlflow.set_tracking_uri(settings.mlflow_tracking_uri)

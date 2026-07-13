@@ -39,8 +39,11 @@ Where the project is and where it's going. This is a **synthetic-data demo** (se
   citations + real *formulations* with processing metadata that can actually augment training.
 
 ### Modelling depth
-- **Inverse design — MCTS.** Add a Monte-Carlo tree-search escalation alongside Bayesian
-  optimisation for harder, multi-modal target specs.
+- **Inverse design — MCTS *(benched — separate stage)*.** A Monte-Carlo tree-search escalation
+  alongside Bayesian optimisation for harder, multi-modal target specs. Powerful, but expensive to do
+  well (a real tree policy + rollouts over the formulation space, and an honest benchmark vs the
+  warm-started TPE we already have). Deliberately deferred to its own implementation stage rather than
+  bolted on.
 - **Learned polymer representation.** Compare learned embeddings against the current descriptor
   features (cosine-similarity analysis).
 

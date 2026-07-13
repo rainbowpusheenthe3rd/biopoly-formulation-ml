@@ -54,9 +54,7 @@ class ConformalCalibrator:
             return float(np.max(scores))
         return float(np.sort(scores)[k - 1])
 
-    def fit(
-        self, df: pd.DataFrame, preds: dict[str, dict[str, np.ndarray]]
-    ) -> ConformalCalibrator:
+    def fit(self, df: pd.DataFrame, preds: dict[str, dict[str, np.ndarray]]) -> ConformalCalibrator:
         """Fit adjustments from calibration predictions and their true targets."""
         for target in TARGETS:
             y = df[target].to_numpy(dtype=float)
@@ -68,14 +66,13 @@ class ConformalCalibrator:
             self.adjustments_[target] = self._conformal_quantile(scores, self.alpha)
         return self
 
-    def apply(
-        self, preds: dict[str, dict[str, np.ndarray]]
-    ) -> dict[str, dict[str, np.ndarray]]:
+    def apply(self, preds: dict[str, dict[str, np.ndarray]]) -> dict[str, dict[str, np.ndarray]]:
         """Return a new preds dict with each band widened (or tightened) by ``Q``.
 
         The point estimate is untouched, and the calibrated band is clipped so the
         point estimate always stays inside it (a large negative ``Q`` cannot invert
-        the interval)."""
+        the interval).
+        """
         out: dict[str, dict[str, np.ndarray]] = {}
         for target in TARGETS:
             q = self.adjustments_.get(target, 0.0)

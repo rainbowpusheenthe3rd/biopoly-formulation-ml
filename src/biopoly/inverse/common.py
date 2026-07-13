@@ -21,8 +21,9 @@ from biopoly.models.metrics import TOLERANCE
 def to_features(
     form: Formulation, protocol: str = "ISO527", *, feedstock_quality: float = 1.0
 ) -> pd.DataFrame:
-    row = form.as_row()
-    row["primary_polymer"] = max(form.polymer_frac, key=form.polymer_frac.get)
+    """Assemble a single-row model-input frame (FEATURE_COLS) from a Formulation."""
+    row: dict[str, object] = dict(form.as_row())
+    row["primary_polymer"] = max(form.polymer_frac, key=lambda p: form.polymer_frac[p])
     row["tensile_protocol"] = protocol
     # Design/predict at nominal feedstock quality unless a batch value is supplied.
     row["feedstock_quality"] = feedstock_quality
@@ -55,6 +56,7 @@ def score_prediction(
 def predict_one(
     model, form: Formulation, protocol: str = "ISO527", *, feedstock_quality: float = 1.0
 ) -> dict[str, dict[str, float]]:
+    """Predict all targets for a single formulation as plain floats."""
     raw = model.predict(to_features(form, protocol, feedstock_quality=feedstock_quality))
     return {t: {k: float(v[0]) for k, v in raw[t].items()} for t in TARGETS}
 

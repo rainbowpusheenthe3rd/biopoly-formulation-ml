@@ -19,9 +19,7 @@ def dataset():
 def test_supplier_shift_triggers_alert(dataset):
     ref = dataset[dataset.supplier_batch == "S1"]
     cur = dataset[dataset.supplier_batch == "S2"]
-    report = detect_drift(
-        ref, cur, ["melt_flow_index_g10min", "tensile_strength_mpa", "frac_PBS"]
-    )
+    report = detect_drift(ref, cur, ["melt_flow_index_g10min", "tensile_strength_mpa", "frac_PBS"])
     assert report["alert"] is True
 
 

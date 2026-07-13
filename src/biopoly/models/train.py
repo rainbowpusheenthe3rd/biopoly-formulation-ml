@@ -54,6 +54,7 @@ def run_hpo(train_df: pd.DataFrame, n_trials: int) -> dict:
 
 
 def main() -> None:
+    """CLI entry point: train the forward model, evaluate, and register-if-better."""
     ap = argparse.ArgumentParser()
     ap.add_argument("--hpo", action="store_true", help="run Optuna hyper-parameter search")
     ap.add_argument("--trials", type=int, default=25)

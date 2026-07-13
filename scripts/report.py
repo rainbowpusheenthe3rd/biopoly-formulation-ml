@@ -106,8 +106,12 @@ def _fig_signal_processing() -> str:
     ax[1].plot(x[peaks], proc[peaks], "v", color="#DD8452", ms=9)
     for p in peaks:
         ax[1].annotate(
-            f"{x[p]:.0f} C", (x[p], proc[p]), textcoords="offset points",
-            xytext=(0, 8), ha="center", fontsize=8,
+            f"{x[p]:.0f} C",
+            (x[p], proc[p]),
+            textcoords="offset points",
+            xytext=(0, 8),
+            ha="center",
+            fontsize=8,
         )
     ax[1].set_title("baseline-corrected + Savitzky-Golay, peaks detected", fontsize=9)
     ax[1].set_xlabel("temperature (C)")
@@ -237,12 +241,18 @@ def _fig_retrain(df: pd.DataFrame) -> tuple[str, dict]:
     xb = np.arange(len(TARGETS))
     fig, ax = plt.subplots(figsize=(9, 4))
     ax.bar(
-        xb - 0.2, [cyc["champion"][t]["r2"] for t in TARGETS], 0.4,
-        label="stale champion (S1-trained)", color="#C44E52",
+        xb - 0.2,
+        [cyc["champion"][t]["r2"] for t in TARGETS],
+        0.4,
+        label="stale champion (S1-trained)",
+        color="#C44E52",
     )
     ax.bar(
-        xb + 0.2, [cyc["retrained"][t]["r2"] for t in TARGETS], 0.4,
-        label="retrained (S1 + new S2)", color="#55A868",
+        xb + 0.2,
+        [cyc["retrained"][t]["r2"] for t in TARGETS],
+        0.4,
+        label="retrained (S1 + new S2)",
+        color="#55A868",
     )
     ax.set_xticks(xb)
     ax.set_xticklabels([t.split("_")[0] for t in TARGETS], fontsize=8)
@@ -258,8 +268,10 @@ def _fig_retrain(df: pd.DataFrame) -> tuple[str, dict]:
 
 
 def _metrics_table_md(metrics) -> str:
-    rows = ["| target | n | MAE | RMSE | R² | coverage | within-tol |",
-            "|---|---|---|---|---|---|---|"]
+    rows = [
+        "| target | n | MAE | RMSE | R² | coverage | within-tol |",
+        "|---|---|---|---|---|---|---|",
+    ]
     for t in TARGETS:
         m = metrics[t]
         rows.append(
@@ -320,7 +332,7 @@ def main() -> None:
 
 ## Data
 {df.shape[0]} rows, {df.shape[1]} columns; missing per target (structured, not-at-random):
-{", ".join(f"{t.split("_")[0]} {df[t].isna().mean() * 100:.0f}%" for t in TARGETS)}.
+{", ".join(f"{t.split('_')[0]} {df[t].isna().mean() * 100:.0f}%" for t in TARGETS)}.
 
 ![target distributions](figures/{f_dist})
 

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import joblib
 import numpy as np
@@ -48,7 +49,7 @@ class ForwardModel:
         self.feature_cols = feature_cols if feature_cols is not None else FEATURE_COLS
         # Optional CQR calibrator; when set, predict() returns calibrated bands.
         # Attached by biopoly-train after fitting on a held-out calibration split.
-        self.conformal_ = None
+        self.conformal_: Any = None
 
     def fit(self, df: pd.DataFrame) -> ForwardModel:
         x_all = make_x(df, self.feature_cols)

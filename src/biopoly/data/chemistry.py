@@ -58,6 +58,7 @@ _IMMISCIBLE: dict[frozenset[str], float] = {
 
 
 def immiscibility(a: str, b: str) -> float:
+    """Pairwise immiscibility (0 miscible .. 1 phase-separating); unlisted pairs = 0.15."""
     if a == b:
         return 0.0
     return _IMMISCIBLE.get(frozenset({a, b}), 0.15)
@@ -91,6 +92,7 @@ def _norm_polymer(frac: dict[str, float]) -> dict[str, float]:
 
 
 def blend_optimum_temp(pfrac: dict[str, float]) -> float:
+    """Composition-weighted optimum processing temperature (°C) for a polymer blend."""
     w = _norm_polymer(pfrac)
     return sum(w[p] * PROC_TEMP_OPT[p] for p in POLYMERS)
 

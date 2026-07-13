@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from biopoly.data.chemistry import Formulation
 from biopoly.data.generate import _sample_formulation
 from biopoly.inverse.common import describe, predict_one, score_prediction
 
@@ -25,7 +26,7 @@ def design(
 ) -> list[dict]:
     """Return the top-k candidate formulations for ``target``, best first."""
     rng = np.random.default_rng(seed)
-    scored: list[tuple[float, object, dict]] = []
+    scored: list[tuple[float, Formulation, dict]] = []
     for _ in range(n_candidates):
         form = _sample_formulation(rng)
         pred = predict_one(model, form)
