@@ -29,10 +29,10 @@ Where the project is and where it's going. This is a **synthetic-data demo** (se
 ## Next
 
 ### Data & signal realism
-- **Data strategy.** A `DATA_STRATEGY.md` — synthetic → literature-derived priors → active learning →
-  a small real seed, with honest limitations. (The active-learning machinery already exists.)
-- **Real-data seed.** Even a handful of literature-sourced real formulations would break the
-  "all synthetic" ceiling more than any extra modelling.
+- **Real-data seed — started.** [`DATA_STRATEGY.md`](DATA_STRATEGY.md) + a small literature seed
+  ([`data/real_seed.csv`](data/real_seed.csv)) used to *anchor* the synthetic generator (~12% median
+  gap; flags PBAT tensile and TPS water as calibration targets). Next: attach primary citations, then
+  real *formulations* with processing metadata that can actually augment training.
 
 ### Modelling depth
 - **Drift → retrain, end-to-end.** Exercise the full detect → retrain → validate → register loop

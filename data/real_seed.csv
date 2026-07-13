@@ -1,0 +1,7 @@
+polymer,tensile_strength_mpa,water_absorption_pct,optical_clarity_pct,source
+PLA,59,0.6,90,"NatureWorks Ingeo datasheets; biopolymer review literature"
+PHA,25,0.8,15,"biopolymer review literature (PHBV grades)"
+PBAT,20,1.0,60,"BASF Ecoflex datasheet; biopolymer review literature"
+PBS,34,1.0,45,"biopolymer review literature"
+TPS,3.5,40,30,"biopolymer review literature (thermoplastic starch)"
+PCL,16,1.0,50,"biopolymer review literature"

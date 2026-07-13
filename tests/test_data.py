@@ -76,3 +76,15 @@ def test_signal_features_added_when_requested():
     for col in SIGNAL_FEATURES:
         assert col in df.columns
     assert df["dsc_max_height"].std() > 0.0  # a real, varying signal feature
+
+
+def test_real_seed_loads_and_anchors_synthetic():
+    from biopoly.data.real_seed import REAL_PROPERTIES, load_real_seed, synthetic_vs_real
+
+    seed = load_real_seed()
+    assert len(seed) >= 5
+    assert {"polymer", *REAL_PROPERTIES} <= set(seed.columns)
+    cmp = synthetic_vs_real()
+    assert not cmp.empty
+    # the synthetic ground truth sits close to the literature seed (loose, honest bound)
+    assert cmp["abs_pct_gap"].median() < 25.0
