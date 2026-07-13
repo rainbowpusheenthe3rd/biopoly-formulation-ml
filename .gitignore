@@ -15,6 +15,7 @@ data/*.parquet
 data/*.csv
 # curated literature reference data (tracked, not a generated artifact)
 !data/real_seed.csv
+!data/real_formulations.csv
 artifacts/
 mlruns/
 mlartifacts/

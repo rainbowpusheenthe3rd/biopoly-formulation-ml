@@ -20,7 +20,9 @@ import pandas as pd
 
 from biopoly.data.chemistry import PROC_TEMP_OPT, Formulation, forward_true
 
-_SEED_PATH = Path(__file__).resolve().parents[3] / "data" / "real_seed.csv"
+_DATA_DIR = Path(__file__).resolve().parents[3] / "data"
+_SEED_PATH = _DATA_DIR / "real_seed.csv"
+_FORMULATIONS_PATH = _DATA_DIR / "real_formulations.csv"
 
 # Properties present in the seed (neat-polymer, commonly reported).
 REAL_PROPERTIES = ["tensile_strength_mpa", "water_absorption_pct", "optical_clarity_pct"]
@@ -29,6 +31,17 @@ REAL_PROPERTIES = ["tensile_strength_mpa", "water_absorption_pct", "optical_clar
 def load_real_seed() -> pd.DataFrame:
     """Load the literature neat-polymer seed (one row per polymer)."""
     return pd.read_csv(_SEED_PATH)
+
+
+def load_real_formulations() -> pd.DataFrame:
+    """Load the small set of real literature *blend* datapoints (tensile only).
+
+    A handful of PLA/PBAT and PLA/PBS melt-blends with reported tensile strength — the
+    first real *formulations* (as opposed to neat polymers). Still partial (tensile
+    only, no full processing metadata), and blend values vary widely with processing
+    and compatibilisation, so treat them as indicative rather than definitive.
+    """
+    return pd.read_csv(_FORMULATIONS_PATH)
 
 
 def synthetic_vs_real() -> pd.DataFrame:

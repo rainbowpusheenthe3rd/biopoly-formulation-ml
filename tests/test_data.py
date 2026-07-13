@@ -78,6 +78,16 @@ def test_signal_features_added_when_requested():
     assert df["dsc_max_height"].std() > 0.0  # a real, varying signal feature
 
 
+def test_real_formulations_load_and_mass_balance():
+    from biopoly.data.real_seed import load_real_formulations
+
+    fdf = load_real_formulations()
+    assert len(fdf) >= 4
+    fracs = fdf[["frac_PLA", "frac_PBAT", "frac_PBS"]].sum(axis=1)
+    assert (fracs.round(3) == 1.0).all()  # each blend's fractions sum to 1
+    assert (fdf["tensile_strength_mpa"] > 0).all()
+
+
 def test_real_seed_loads_and_anchors_synthetic():
     from biopoly.data.real_seed import REAL_PROPERTIES, load_real_seed, synthetic_vs_real
 

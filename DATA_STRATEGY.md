@@ -17,8 +17,11 @@ that regime, and where the honest limits are. It is a **synthetic-data demo**; t
    are most informative ([`active_learning.py`](src/biopoly/active_learning.py)). Benchmarked honestly:
    it does not beat random on the synthetic problem, but the acquisition loop is in place.
 4. **A real-data seed** *(started — this)* — begin folding in real literature values, smallest first.
-5. **Real formulations with metadata** *(next)* — real recipes *with processing conditions and measured
-   outputs* are what actually augment training; sourcing those is the real work ahead.
+5. **Real formulations** *(started)* — [`data/real_formulations.csv`](data/real_formulations.csv): a
+   handful of real PLA/PBAT and PLA/PBS melt-blends with reported tensile strength. Tensile only, no
+   full processing metadata yet — and blend values vary widely with processing/compatibilisation — so
+   still indicative, not training-ready. The remaining work is recipes *with processing conditions and
+   the full property set*.
 
 ## The seed so far
 
@@ -76,3 +79,13 @@ authoritative use):
   Nanocomposites", *Materials* (PMC9228835): <https://pmc.ncbi.nlm.nih.gov/articles/PMC9228835/>
 - "Recent advances in biodegradable polymer blends and their biocomposites: a comprehensive review",
   *Green Chemistry* (RSC, 2025), DOI 10.1039/D5GC01294E: <https://pubs.rsc.org/en/content/articlehtml/2025/gc/d5gc01294e>
+
+Blend datapoints (`real_formulations.csv`):
+
+- "Influence of PBS, PBAT and TPS content on tensile and processing properties of PLA-based blends",
+  *J. Materials Science* (2023), DOI 10.1007/s10853-022-08081-z:
+  <https://link.springer.com/article/10.1007/s10853-022-08081-z>
+- "Polylactide (PLA) and Its Blends with Poly(butylene succinate) (PBS): A Brief Review", *Polymers*
+  (PMC6680981): <https://pmc.ncbi.nlm.nih.gov/articles/PMC6680981/>
+- "Understanding the Role of PBAT Content ... on 3D-Printed PLA/PBAT Objects", *Polymers* (2026),
+  DOI 10.3390/polym18030339: <https://doi.org/10.3390/polym18030339>
