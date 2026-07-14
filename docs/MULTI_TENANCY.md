@@ -1,11 +1,14 @@
 # Multi-tenancy & a client-login frontend — design note
 
-> **Status: mostly design; a minimal login frontend is built.** The repo ships a
-> single-tenant demo API ([`api/main.py`](../src/biopoly/api/main.py)) plus a small
-> login-gated Streamlit UI ([`frontend/streamlit_app.py`](../frontend/streamlit_app.py))
-> that demonstrates the tenant UX (step 3 below). This note sketches how it would grow
-> into a service that several client organisations ("tenants") log into and use in
-> isolation — the natural next step once more than one customer is on it.
+> **Status: step 1 built (API-side tenant isolation), plus the guardrails from step 2
+> and the step-3 frontend.** The API ([`api/main.py`](../src/biopoly/api/main.py))
+> authenticates every request to a `TenantContext`, isolates each tenant's data behind
+> one access layer ([`api/tenancy.py`](../src/biopoly/api/tenancy.py)), and enforces
+> per-tenant quotas + an audit trail; a login-gated Streamlit UI
+> ([`frontend/streamlit_app.py`](../frontend/streamlit_app.py)) demonstrates the tenant
+> UX. Postgres row-level security (the DB-level hardening of step 2) remains design —
+> there is no database in this synthetic demo. This note is the full picture of how it
+> grows into a service several client organisations ("tenants") log into in isolation.
 
 ## The shape of the problem
 
@@ -68,18 +71,27 @@ just made usable:
   same stack); the API stays the source of truth so the frontend is swappable.
 
 ## Phased rollout
-1. `TenantContext` dependency + API-key auth + `tenant_id` on all rows and queries.
-2. Postgres RLS + per-tenant quotas + audit log.
+1. **`TenantContext` dependency + API-key auth + tenant-scoped data — built**
+   ([`api/tenancy.py`](../src/biopoly/api/tenancy.py)). Every endpoint except `/health`
+   depends on `require_tenant`, which resolves the `X-API-Key` header to a
+   `TenantContext(tenant_id, name, role)` (401 on missing/unknown) — the single auth
+   choke-point. Every tenant read/write goes through one tenant-scoped access layer
+   (`RunLog`), whose methods all take a `tenant_id`, so `/history` returns only the
+   caller's runs. Keys come from `BIOPOLY_API_KEYS` (`key:tenant_id:role` CSV) or a demo
+   default of two tenants + an admin key.
+2. **Per-tenant quotas + audit log — built** (`enforce_quota`, the append-only `RunLog`,
+   fail-open recording); role-gated `/admin/usage`. **Postgres RLS — design only:** the
+   access layer already carries the tenant filter on every query, so `SET app.tenant_id`
+   + RLS policies drop in underneath it unchanged once there is a database.
 3. **Minimal Streamlit login frontend (built)** — `frontend/streamlit_app.py`: login →
-   tenant-scoped predict / design / history over the API. Isolation is session-layer
-   here (a demo); DB-level isolation is steps 1–2. Run:
+   tenant-scoped predict / design / history over the API. Run:
    `uv run --extra frontend streamlit run frontend/streamlit_app.py` (API up separately).
 4. Per-tenant calibration, then per-tenant models for tenants with the data to justify it.
 
 ## What exists vs what's next
-- **Exists:** the single-tenant FastAPI service, the model registry (versioning/
-  promotion that per-tenant models would reuse), calibrated intervals, and the minimal
-  Streamlit login frontend (step 3, session-layer isolation).
-- **Next (not built):** the API-side tenant machinery — `TenantContext` + API-key/JWT
-  auth + `tenant_id` on all rows with Postgres RLS (steps 1–2), then per-tenant
-  calibration/models (step 4).
+- **Exists:** API-side tenant isolation (auth choke-point + tenant-scoped access layer +
+  `/whoami` / `/history` / admin `/admin/usage`), per-tenant daily quotas, a fail-open
+  audit trail, the model registry (versioning/promotion that per-tenant models would
+  reuse), calibrated intervals, and the Streamlit login frontend.
+- **Next (not built):** Postgres row-level security (needs a real DB), then per-tenant
+  calibration/models (step 4) keyed by `tenant_id` in the registry.

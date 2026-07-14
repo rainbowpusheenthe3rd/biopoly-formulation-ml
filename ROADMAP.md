@@ -41,6 +41,11 @@ Where the project is and where it's going. This is a **synthetic-data demo** (se
   **sim-to-real** check (tensile MAE + calibrated-band coverage), with an honest leave-one-out
   augmentation experiment and an opt-in `biopoly-train --augment-real`
   ([`real_seed.py`](src/biopoly/data/real_seed.py)).
+- **Multi-tenant API (isolation + guardrails)** ([`api/tenancy.py`](src/biopoly/api/tenancy.py)) — every
+  endpoint but `/health` resolves an `X-API-Key` to a `TenantContext` at one auth choke-point; all tenant
+  data flows through a single tenant-scoped access layer (`/history` returns only the caller's runs),
+  with per-tenant daily quotas and a fail-open audit trail, and role-gated `/admin/usage`. Step 1 + the
+  guardrails of step 2 of [`docs/MULTI_TENANCY.md`](docs/MULTI_TENANCY.md).
 
 ## Next
 
@@ -59,10 +64,11 @@ Where the project is and where it's going. This is a **synthetic-data demo** (se
   bolted on.
 
 ### Productionisation
-- **Multi-tenant frontend — minimal built** ([`frontend/streamlit_app.py`](frontend/streamlit_app.py)):
-  a login-gated Streamlit UI over the API with tenant-scoped predict / design / history (session-layer
-  isolation). *Next:* the API-side tenant machinery — `TenantContext` + API-key/JWT auth + `tenant_id`
-  on all rows with Postgres row-level security (see [`docs/MULTI_TENANCY.md`](docs/MULTI_TENANCY.md)).
+- **Multi-tenancy — DB-level hardening + per-tenant models.** API-side isolation, quotas and audit are
+  built (above); still to come are **Postgres row-level security** (the access layer already carries the
+  tenant filter on every query, so `SET app.tenant_id` + RLS policies drop in underneath it once there
+  is a real database) and short-lived **JWTs** for the frontend, then **per-tenant calibration/models**
+  keyed by `tenant_id` in the registry (see [`docs/MULTI_TENANCY.md`](docs/MULTI_TENANCY.md)).
 
 ### Engineering hygiene
 - Google-style docstrings (ruff `D`), `mypy`, a coverage gate (`pytest-cov`), and expanded CI stages

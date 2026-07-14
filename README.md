@@ -26,16 +26,22 @@ uv run uvicorn biopoly.api.main:app --reload   # serve the API on :8000
 docker compose up --build        # API on http://localhost:8000/docs
 ```
 
-Predict properties, then design a formulation to a target:
+Predict properties, then design a formulation to a target. Every endpoint but `/health`
+is tenant-scoped and needs an `X-API-Key` header (demo key below; see
+[`docs/MULTI_TENANCY.md`](docs/MULTI_TENANCY.md)):
 
 ```bash
-curl -s localhost:8000/predict -H 'content-type: application/json' -d '{
+curl -s localhost:8000/predict -H 'X-API-Key: demo-acme-key' \
+  -H 'content-type: application/json' -d '{
   "frac": {"PLA": 0.8, "PBS": 0.2}, "additives": {"plasticizer": 0.05},
   "process_temp_c": 195, "process_time_min": 20}'
 
-curl -s localhost:8000/design -H 'content-type: application/json' -d '{
+curl -s localhost:8000/design -H 'X-API-Key: demo-acme-key' \
+  -H 'content-type: application/json' -d '{
   "target": {"tensile_strength_mpa": 50, "optical_clarity_pct": 80},
   "method": "bayesopt", "top_k": 3}'
+
+curl -s localhost:8000/history -H 'X-API-Key: demo-acme-key'   # this tenant's runs only
 ```
 
 ## The problem

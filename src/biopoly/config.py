@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     # Drift monitoring
     drift_p_value: float = 0.01
 
+    # Multi-tenancy (API). api_keys is a "key:tenant_id:role" CSV; empty -> demo tenants
+    # (see biopoly.api.tenancy). tenant_daily_quota caps calls/tenant/day (0 = unlimited).
+    api_keys: str = ""
+    tenant_daily_quota: int = 0
+
     def ensure_dirs(self) -> None:
         self.artifact_dir.mkdir(parents=True, exist_ok=True)
         self.data_path.parent.mkdir(parents=True, exist_ok=True)
