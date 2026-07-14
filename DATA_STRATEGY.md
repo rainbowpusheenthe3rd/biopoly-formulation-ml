@@ -17,11 +17,14 @@ that regime, and where the honest limits are. It is a **synthetic-data demo**; t
    are most informative ([`active_learning.py`](src/biopoly/active_learning.py)). Benchmarked honestly:
    it does not beat random on the synthetic problem, but the acquisition loop is in place.
 4. **A real-data seed** *(started — this)* — begin folding in real literature values, smallest first.
-5. **Real formulations** *(started)* — [`data/real_formulations.csv`](data/real_formulations.csv): a
-   handful of real PLA/PBAT and PLA/PBS melt-blends with reported tensile strength. Tensile only, no
-   full processing metadata yet — and blend values vary widely with processing/compatibilisation — so
-   still indicative, not training-ready. The remaining work is recipes *with processing conditions and
-   the full property set*.
+5. **Real formulations** *(have — schema-complete)* — [`data/real_formulations.csv`](data/real_formulations.csv):
+   real PLA/PBAT and PLA/PBS melt-blends with reported tensile strength, now enriched with processing
+   metadata (composition, melt temperature, protocol) so each is a **schema-complete training row**
+   ([`real_seed.py`](src/biopoly/data/real_seed.py) `real_formulations_training_frame()`). Only tensile
+   is reported, so the other four targets stay missing and the forward model's per-target NaN masking
+   uses each row for tensile alone. Their honest use is a **real-world validation set** (sim-to-real
+   transfer, see below), with training augmentation available but off by default. The remaining work is
+   the *full property set* on these blends (MFI, biodegradation, water, clarity with primary citations).
 
 ## The seed so far
 
@@ -50,12 +53,29 @@ honest first use is **anchoring** — checking the synthetic ground truth agains
   is ~10–20 MPa, so the synthetic anchor of ~12 is fine; the 35 MPa datasheet figure is oriented film.)
   This is real data doing real work — both validating the priors and correcting them.
 
+## Second use: sim-to-real validation, and an honest augmentation check
+
+The real *formulations* go one rung further than the neat seed. Enriched with processing metadata they
+line up with the feature schema, so the synthetic-trained forward model can predict their tensile and
+be scored against the literature value ([`real_seed.py`](src/biopoly/data/real_seed.py)
+`evaluate_sim_to_real()`): a genuine out-of-distribution transfer check, reported with the fraction of
+blends whose conformally-calibrated p10–p90 band contains reality (see `docs/RESULTS.md`).
+
+`augmentation_experiment()` then asks the honest question — *do these points help as training data?* —
+by leave-one-out (synthetic-only vs synthetic + the other real blends). Five points against thousands
+of synthetic rows barely move the tensile error, which is the expected, honest answer: at this scale
+real data is worth more as **validation and anchoring** (and, next, targeted fine-tuning) than as raw
+augmentation. `biopoly-train --augment-real` folds them in for anyone who wants to; the champion
+pipeline stays purely synthetic and reproducible by default.
+
 ## Honest limitations
 
 - Tensile is literature-sourced (datasheet + review ranges); water absorption and optical clarity are
   still indicative; MFI and 60-day biodegradation are omitted. So: partial, and secondary-sourced.
-- Neat polymers only — no blends, no processing conditions, so not training-ready yet.
-- Six rows: enough to anchor and to start the habit of folding real data in, nothing more.
+- The neat seed is neat polymers only; the real formulations report tensile only, and their melt
+  residence time is a representative extrusion value rather than a per-study figure.
+- A handful of rows: enough to anchor, validate sim-to-real transfer, and start the habit of folding
+  real data in — not enough to move a synthetic-trained model by augmentation alone.
 
 ## Growing it
 

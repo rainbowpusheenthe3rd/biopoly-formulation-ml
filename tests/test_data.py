@@ -83,9 +83,25 @@ def test_real_formulations_load_and_mass_balance():
 
     fdf = load_real_formulations()
     assert len(fdf) >= 4
-    fracs = fdf[["frac_PLA", "frac_PBAT", "frac_PBS"]].sum(axis=1)
+    frac_cols = [c for c in fdf.columns if c.startswith("frac_")]
+    fracs = fdf[frac_cols].sum(axis=1)
     assert (fracs.round(3) == 1.0).all()  # each blend's fractions sum to 1
     assert (fdf["tensile_strength_mpa"] > 0).all()
+
+
+def test_real_formulations_training_frame_is_schema_complete():
+    from biopoly.data.real_seed import REAL_FORMULATION_TARGET, real_formulations_training_frame
+
+    frame = real_formulations_training_frame()
+    # every feature column present and populated (no NaN features)
+    for col in FEATURE_COLS:
+        assert col in frame.columns
+        assert frame[col].notna().all()
+    # only the reported target is present; the other four are missing (partial label)
+    assert frame[REAL_FORMULATION_TARGET].notna().all()
+    for target in TARGETS:
+        if target != REAL_FORMULATION_TARGET:
+            assert frame[target].isna().all()
 
 
 def test_real_seed_loads_and_anchors_synthetic():
@@ -98,3 +114,29 @@ def test_real_seed_loads_and_anchors_synthetic():
     assert not cmp.empty
     # the synthetic ground truth sits close to the literature seed (loose, honest bound)
     assert cmp["abs_pct_gap"].median() < 25.0
+
+
+@pytest.mark.layer(9)  # full-system: synthetic-trained model transfers to real data
+def test_sim_to_real_evaluation(fast_model):
+    from biopoly.data.real_seed import evaluate_sim_to_real
+
+    s2r = evaluate_sim_to_real(fast_model)
+    table = s2r["table"]
+    assert len(table) == s2r["n"] >= 4
+    assert {"real_tensile_mpa", "pred_tensile_mpa", "band_covers"} <= set(table.columns)
+    # a synthetic-trained model should land in the right ballpark on real blends, not
+    # perfectly — a loose, honest sim-to-real bound (tensile spans ~30-55 MPa here)
+    assert 0.0 < s2r["mae"] < 25.0
+    assert 0.0 <= s2r["coverage"] <= 1.0
+
+
+@pytest.mark.layer(9)
+def test_augmentation_experiment_runs(small_df):
+    from biopoly.data.real_seed import augmentation_experiment
+
+    res = augmentation_experiment(small_df, params={"n_estimators": 60, "learning_rate": 0.1})
+    assert len(res["table"]) >= 4
+    # both arms produce finite errors; we assert the machinery, not a win (honest — a
+    # handful of real points is not expected to beat thousands of synthetic rows)
+    assert res["mae_synth_only"] > 0.0
+    assert res["mae_augmented"] > 0.0

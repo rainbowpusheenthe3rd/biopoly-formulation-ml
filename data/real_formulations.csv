@@ -1,6 +1,6 @@
-blend,frac_PLA,frac_PBAT,frac_PBS,tensile_strength_mpa,tensile_range_mpa,source
-PLA/PBAT 90/10,0.90,0.10,0.00,48,46-50,"PLA/PBAT melt-blend / 3D-print studies (0-deg raster)"
-PLA/PBAT 80/20,0.80,0.20,0.00,42,35-58,"PLA/PBAT blend studies (uncompatibilised; wide processing spread)"
-PLA/PBAT 70/30,0.70,0.30,0.00,33,30-40,"PLA/PBAT 70/30 melt-blend studies (uncompatibilised)"
-PLA/PBS 80/20,0.80,0.00,0.20,55,50-60,"PLA/PBS review (80/20 baseline, pre-crosslinker)"
-PLA/PBS 70/30,0.70,0.00,0.30,48,40-55,"PLA/PBS blend studies"
+blend,frac_PLA,frac_PHA,frac_PBAT,frac_PBS,frac_TPS,frac_PCL,add_plasticizer,add_nucleating,add_compatibilizer,add_fibre,add_chain_extender,process_temp_c,process_time_min,primary_polymer,tensile_protocol,feedstock_quality,tensile_strength_mpa,tensile_range_mpa,source
+PLA/PBAT 90/10,0.90,0.00,0.10,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,185,4.0,PLA,ASTMD638,1.0,48,46-50,"PLA/PBAT melt-blend / 3D-print studies (0-deg raster); twin-screw ~180-190 C, ASTM D638"
+PLA/PBAT 80/20,0.80,0.00,0.20,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,185,4.0,PLA,ASTMD638,1.0,42,35-58,"PLA/PBAT blend studies (uncompatibilised; wide processing spread); twin-screw ~180-190 C, ASTM D638"
+PLA/PBAT 70/30,0.70,0.00,0.30,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,185,4.0,PLA,ASTMD638,1.0,33,30-40,"PLA/PBAT 70/30 melt-blend studies (uncompatibilised); twin-screw ~180-190 C, ASTM D638"
+PLA/PBS 80/20,0.80,0.00,0.00,0.20,0.00,0.00,0.00,0.00,0.00,0.00,0.00,180,4.0,PLA,ISO527,1.0,55,50-60,"PLA/PBS review (80/20 baseline, pre-crosslinker); melt-blend ~175-190 C, ISO 527"
+PLA/PBS 70/30,0.70,0.00,0.00,0.30,0.00,0.00,0.00,0.00,0.00,0.00,0.00,180,4.0,PLA,ISO527,1.0,48,40-55,"PLA/PBS blend studies; melt-blend ~175-190 C, ISO 527"

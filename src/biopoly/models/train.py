@@ -59,6 +59,11 @@ def main() -> None:
     ap.add_argument("--hpo", action="store_true", help="run Optuna hyper-parameter search")
     ap.add_argument("--trials", type=int, default=25)
     ap.add_argument("--split", choices=["random", "temporal"], default="random")
+    ap.add_argument(
+        "--augment-real",
+        action="store_true",
+        help="fold the real literature blends into the training set (tensile only)",
+    )
     args = ap.parse_args()
 
     settings.ensure_dirs()
@@ -67,6 +72,18 @@ def main() -> None:
     # Carve a calibration split out of train for CQR — the calibrator must see
     # data the forward model never trained on, or the coverage guarantee is void.
     fit_df, cal_df = split(train_df, test_size=0.2, mode=args.split, seed=settings.seed + 1)
+
+    # Opt-in: augment with the real literature blends. Kept off by default so the
+    # champion pipeline stays purely synthetic and reproducible; the real rows are
+    # partial-label (tensile only) and used for tensile alone via per-target masking.
+    if args.augment_real:
+        from biopoly.data.real_seed import real_formulations_training_frame
+        from biopoly.data.schema import FEATURE_COLS
+
+        model_cols = FEATURE_COLS + TARGETS
+        real = real_formulations_training_frame()[model_cols]
+        fit_df = pd.concat([fit_df[model_cols], real], ignore_index=True)
+        print(f"augmenting training set with {len(real)} real literature blends (tensile)")
 
     params = run_hpo(fit_df, args.trials) if args.hpo else {}
     model = ForwardModel(params).fit(fit_df)
@@ -89,6 +106,18 @@ def main() -> None:
             f"(width {raw_metrics[t]['mean_interval_width']:.2f} "
             f"-> {metrics[t]['mean_interval_width']:.2f}, Q={adj:+.2f})"
         )
+
+    # Sim-to-real: how does the synthetic-trained model fare on real literature blends?
+    from biopoly.data.real_seed import evaluate_sim_to_real
+
+    s2r = evaluate_sim_to_real(model)
+    # If the real blends were folded into training, this is an in-sample fit, not the
+    # honest out-of-distribution transfer number — flag it so it can't be misread.
+    scope = "in-sample (blends in training)" if args.augment_real else "out-of-distribution"
+    print(
+        f"\nsim-to-real (real literature blends, tensile, {scope}): "
+        f"MAE {s2r['mae']:.1f} MPa, band coverage {s2r['coverage']:.2f} over n={s2r['n']}"
+    )
 
     model_dir = model.save(settings.artifact_dir / "forward_latest")
     model.conformal_.save(model_dir)  # human-readable adjustments alongside the pickle

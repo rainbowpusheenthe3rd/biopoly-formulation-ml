@@ -320,6 +320,45 @@ def _fig_retrain(df: pd.DataFrame) -> tuple[str, dict]:
     return path.name, cyc
 
 
+def _fig_sim_to_real(model: ForwardModel) -> tuple[str, dict]:
+    """Predicted vs real tensile on the literature blends, with calibrated bands."""
+    from biopoly.data.real_seed import evaluate_sim_to_real
+
+    s2r = evaluate_sim_to_real(model)
+    tbl = s2r["table"]
+    x = np.arange(len(tbl))
+    real = tbl["real_tensile_mpa"].to_numpy()
+    pred = tbl["pred_tensile_mpa"].to_numpy()
+    lo = pred - tbl["p10"].to_numpy()
+    hi = tbl["p90"].to_numpy() - pred
+
+    fig, ax = plt.subplots(figsize=(8, 4.2))
+    ax.errorbar(
+        x - 0.08,
+        pred,
+        yerr=[lo, hi],
+        fmt="o",
+        color="#4C72B0",
+        capsize=4,
+        label="predicted (p10-p90)",
+    )
+    ax.scatter(x + 0.08, real, marker="s", color="#C44E52", zorder=3, label="real (literature)")
+    ax.set_xticks(x)
+    ax.set_xticklabels(tbl["blend"], fontsize=8, rotation=20, ha="right")
+    ax.set_ylabel("tensile strength (MPa)")
+    ax.set_title(
+        f"Sim-to-real: synthetic-trained model on real blends "
+        f"(MAE {s2r['mae']:.1f} MPa, band covers {s2r['coverage'] * 100:.0f}%)",
+        fontsize=9,
+    )
+    ax.legend(fontsize=8)
+    fig.tight_layout()
+    path = FIG / "sim_to_real.png"
+    fig.savefig(path, dpi=110, bbox_inches="tight")
+    plt.close(fig)
+    return path.name, s2r
+
+
 def _metrics_table_md(metrics) -> str:
     rows = [
         "| target | n | MAE | RMSE | R² | coverage | within-tol |",
@@ -362,6 +401,19 @@ def main() -> None:
     f_retrain, cyc = _fig_retrain(df)
     rt_recover = {t: cyc["retrained"][t]["r2"] - cyc["champion"][t]["r2"] for t in TARGETS}
     rt_worst = max(rt_recover, key=rt_recover.get)  # the target retraining recovers most
+
+    # Sim-to-real on the real literature blends + the honest augmentation experiment.
+    from biopoly.data.real_seed import augmentation_experiment
+
+    f_s2r, s2r = _fig_sim_to_real(model)
+    s2r_rows = "\n".join(
+        f"| {r.blend} | {r.real_tensile_mpa:.0f} | {r.pred_tensile_mpa:.0f} "
+        f"| {r.p10:.0f}–{r.p90:.0f} | {r.abs_err_mpa:.0f} | {'yes' if r.band_covers else 'no'} |"
+        for r in s2r["table"].itertuples()
+    )
+    aug = augmentation_experiment(train_df, params={"n_estimators": 150, "learning_rate": 0.08})
+    s2r_mae, s2r_cov, s2r_n = s2r["mae"], s2r["coverage"] * 100, s2r["n"]
+    aug_synth, aug_aug = aug["mae_synth_only"], aug["mae_augmented"]
 
     abl_rows = "\n".join(
         f"| {t.split('_')[0]} | {abl_base[t]['r2']:.3f} | {abl_sig[t]['r2']:.3f} "
@@ -486,6 +538,29 @@ domains (costly labels, real distribution shift) where it pays.
 {format_report(drift)}
 ```
 
+## Real-world validation (sim-to-real)
+Datasets are the binding constraint in bioplastics, so the few real numbers we have are spent where
+they are worth most. A small set of literature PLA/PBAT and PLA/PBS blends
+([`data/real_formulations.csv`](../data/real_formulations.csv)), enriched with processing metadata,
+becomes a **real-world validation set**: the synthetic-trained forward model predicts their tensile
+strength, and we check the error and whether the conformally-calibrated p10–p90 band contains the
+literature value. This is a genuine out-of-distribution transfer check — **MAE {s2r_mae:.1f} MPa**,
+band covers **{s2r_cov:.0f}%** of blends (n={s2r_n}).
+
+| blend | real | pred | p10–p90 | abs err | band covers |
+|---|---|---|---|---|---|
+{s2r_rows}
+
+![sim-to-real](figures/{f_s2r})
+
+**Do the real points help as training augmentation?** Honest leave-one-out: predict each real blend
+from a synthetic-only model vs one trained on synthetic + the *other* real blends. Tensile MAE
+**{aug_synth:.1f} → {aug_aug:.1f} MPa** — five points barely move a model that already sees
+thousands of synthetic rows. That is the expected, honest result: at this scale the real data earns
+its keep as **validation and anchoring** (and, next, targeted fine-tuning), not as raw augmentation.
+Training can opt in with `biopoly-train --augment-real`; the champion pipeline stays purely
+synthetic by default.
+
 ## Retrain on drift (detect -> retrain -> validate -> register)
 An alert is only worth raising if it drives an action. The full loop runs against the supplier
 shift: a champion trained on **pre-shift (S1)** data is scored on a held-out **post-shift (S2)**
@@ -500,7 +575,7 @@ the retrained model only if it wins ([`registry.py`](../src/biopoly/models/regis
 ![retrain on drift](figures/{f_retrain})
 """
     (DOCS / "RESULTS.md").write_text(md, encoding="utf-8")
-    print("wrote docs/RESULTS.md and 9 figures under docs/figures/")
+    print("wrote docs/RESULTS.md and 10 figures under docs/figures/")
     print(f"mean R2 = {summary_row(metrics):.3f}; drift alert = {drift['alert']}")
 
 

@@ -113,6 +113,32 @@ drift: 1/4 columns drifted -> alert=True
   [  ok ] primary_polymer            PSI=0.007
 ```
 
+## Real-world validation (sim-to-real)
+Datasets are the binding constraint in bioplastics, so the few real numbers we have are spent where
+they are worth most. A small set of literature PLA/PBAT and PLA/PBS blends
+([`data/real_formulations.csv`](../data/real_formulations.csv)), enriched with processing metadata,
+becomes a **real-world validation set**: the synthetic-trained forward model predicts their tensile
+strength, and we check the error and whether the conformally-calibrated p10–p90 band contains the
+literature value. This is a genuine out-of-distribution transfer check — **MAE 7.9 MPa**,
+band covers **20%** of blends (n=5).
+
+| blend | real | pred | p10–p90 | abs err | band covers |
+|---|---|---|---|---|---|
+| PLA/PBAT 90/10 | 48 | 43 | 33–45 | 5 | no |
+| PLA/PBAT 80/20 | 42 | 38 | 28–38 | 4 | no |
+| PLA/PBAT 70/30 | 33 | 35 | 27–37 | 2 | yes |
+| PLA/PBS 80/20 | 55 | 38 | 24–39 | 17 | no |
+| PLA/PBS 70/30 | 48 | 37 | 26–39 | 11 | no |
+
+![sim-to-real](figures/sim_to_real.png)
+
+**Do the real points help as training augmentation?** Honest leave-one-out: predict each real blend
+from a synthetic-only model vs one trained on synthetic + the *other* real blends. Tensile MAE
+**8.0 → 7.2 MPa** — five points barely move a model that already sees thousands
+of synthetic rows. That is the expected, honest result: at this scale the real data earns its keep as
+**validation and anchoring** (and, next, targeted fine-tuning), not as raw augmentation. Training can
+opt in with `biopoly-train --augment-real`; the champion pipeline stays purely synthetic by default.
+
 ## Retrain on drift (detect -> retrain -> validate -> register)
 An alert is only worth raising if it drives an action. The full loop runs against the supplier
 shift: a champion trained on **pre-shift (S1)** data is scored on a held-out **post-shift (S2)**

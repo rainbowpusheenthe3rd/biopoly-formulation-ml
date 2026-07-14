@@ -33,16 +33,23 @@ Where the project is and where it's going. This is a **synthetic-data demo** (se
   and `register_if_better` promotes only on a win.
 - **Testing** — a spiral-layered suite reporting a **complexity frontier**
   ([`tests/conftest.py`](tests/conftest.py)).
+- **Real-data seed + sim-to-real validation** — [`DATA_STRATEGY.md`](DATA_STRATEGY.md) + a literature
+  seed ([`data/real_seed.csv`](data/real_seed.csv), sourced tensile) anchoring the synthetic generator
+  (~12% median gap; flags PCL tensile), plus real PLA/PBAT & PLA/PBS blends
+  ([`data/real_formulations.csv`](data/real_formulations.csv)) enriched with processing metadata into
+  **schema-complete rows**. The synthetic-trained model is scored on them as an out-of-distribution
+  **sim-to-real** check (tensile MAE + calibrated-band coverage), with an honest leave-one-out
+  augmentation experiment and an opt-in `biopoly-train --augment-real`
+  ([`real_seed.py`](src/biopoly/data/real_seed.py)).
 
 ## Next
 
 ### Data & signal realism
-- **Real-data seed — started.** [`DATA_STRATEGY.md`](DATA_STRATEGY.md) + a small literature seed
-  ([`data/real_seed.csv`](data/real_seed.csv), sourced tensile with citations) used to *anchor* the
-  synthetic generator (~12% median gap; flags PCL tensile as a calibration target), plus a handful of
-  real PLA/PBAT & PLA/PBS blend datapoints ([`data/real_formulations.csv`](data/real_formulations.csv)).
-  Next: full processing metadata + the complete property set on the real formulations so they can
-  augment training.
+- **Complete the real formulations' property set.** The blends currently report tensile only; source
+  the remaining targets (MFI, 60-day biodegradation, water absorption, optical clarity) with primary
+  citations so they become full multi-target training rows rather than tensile-only, and revisit a
+  small fine-tune / residual-correction on top of the synthetic model now that the sim-to-real gap is
+  measured.
 
 ### Modelling depth
 - **Inverse design — MCTS *(benched — separate stage)*.** A Monte-Carlo tree-search escalation
